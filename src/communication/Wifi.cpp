@@ -1,11 +1,11 @@
 #include "communication/Wifi.hpp"
-#include "utils.hpp"
 
 // Constructor implementation
-Wifi::Wifi(char *wifiSsid, char *wifiPassword, bool isWifiConnected = false) : m_wifiSsid(wifiSsid), m_wifiPassword(wifiPassword)
+Wifi::Wifi(char *wifiSsid, char *wifiPassword, bool isWifiConnected)
+    : m_wifiSsid(wifiSsid), m_wifiPassword(wifiPassword), m_isWifiConnected(isWifiConnected)
 {
-    
 }
+
 
 // Destructor implementation
 Wifi::~Wifi()
@@ -39,10 +39,11 @@ bool Wifi::connect()
     while (WiFi.status() != WL_CONNECTED)
     {
         delay(TIMEOUT_FOR_CONNECTING_WIFI);
-        PLAT_LOG_D("%s", "Connecting...");
+        PLAT_LOG_ED("%s", ".");
     }
-    PLAT_LOG_D("Connected to WiFi network %s\n", m_wifiSsid);
-    PLAT_LOG_D("IP Address: %s\n", WiFi.localIP().toString().c_str());
+    PLAT_LOG_D("%s","");
+    PLAT_LOG_D("Connected to WiFi network %s", m_wifiSsid);
+    PLAT_LOG_D("IP Address: %s", WiFi.localIP().toString().c_str());
     m_isWifiConnected = true;
     return true;
 }
@@ -55,4 +56,9 @@ void Wifi::disconnect()
 bool Wifi::isConnected() const
 {
     return m_isWifiConnected;
+}
+
+std::shared_ptr<Wifi> Wifi::create(char *wifiSsid, char *wifiPassword, bool isWifiConnected)
+{
+    return std::make_shared<Wifi>(wifiSsid, wifiPassword, isWifiConnected);
 }

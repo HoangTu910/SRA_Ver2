@@ -5,6 +5,7 @@
 * Disclaimer: This code is presented "as is" without any guarantees.
 * Details:    Defines the API for the corresponding SHA1 implementation.
 *********************************************************************/
+#pragma once
 
 #ifndef SHA256_H
 #define SHA256_H

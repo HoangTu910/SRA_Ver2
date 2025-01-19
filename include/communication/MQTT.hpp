@@ -1,5 +1,11 @@
+#ifndef MQTT_HPP
+#define MQTT_HPP
+
 #include <PubSubClient.h>
 #include <WiFi.h>
+#include <memory>
+#include "setupConfiguration/utils.hpp"
+#include "communication/CommunicationNumberHelper.hpp"
 
 class MQTT
 {
@@ -15,8 +21,7 @@ private:
     PubSubClient m_client;
 public:
     //constructor
-    MQTT();
-    MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic);
+    MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword);
     ~MQTT();
 
     //setter
@@ -36,6 +41,18 @@ public:
 
     //configuration
     void callBack(char *topic, byte *payload, unsigned int length);
-    void mqttConfig();
+    void connect();
     void reconnect();
+    void setupServer();
+
+    static std::shared_ptr<MQTT> create(
+        char *mqttServer, 
+        int mqttPort, 
+        char *mqttDeviceID, 
+        char *mqttDataTopic,
+        char *mqttPublicKeyTopic, 
+        char *mqttUser, 
+        char *mqttPassword);
 };
+
+#endif // MQTT_HPP

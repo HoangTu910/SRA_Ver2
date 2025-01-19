@@ -1,6 +1,11 @@
+#ifndef SETUP_NUMBER_HELPER_HPP
+#define SETUP_NUMBER_HELPER_HPP
+
 enum Serial
 {
     BAUD_RATE = 115200,
     TX_PIN = 16,
     RX_PIN = 17,
 };
+
+#endif // SETUP_NUMBER_HELPER_HPP

@@ -1,16 +1,22 @@
+#ifndef COMMUNICATION_NUMBER_HELPER_HPP
+#define COMMUNICATION_NUMBER_HELPER_HPP
+
 namespace WifiHelper
 {
-    const char *SSID = "The jade coffee";
-    const char *PASSWORD = "caphengon";
+    extern char *SSID;
+    extern char *PASSWORD;
 }
 
 namespace MQTTHelper
 {   
-    const char* MQTT_SERVER = "113.161.225.11";
-    const int MQTT_PORT = 1885;
-    const char* MQTT_USER = "admin";
-    const char* MQTT_PASSWORD = "123";
-    const char* MQTT_DATA_TOPIC = "sensors/data";
-    const char* MQTT_PUBLIC_KEY_TOPIC = "encrypt/dhexchange";
-    const char* MQTT_DEVICE_ID = "newdevice123";
+    extern char* MQTT_SERVER;
+    extern int MQTT_PORT;
+    extern char* MQTT_USER;
+    extern char* MQTT_PASSWORD;
+    extern char* MQTT_DATA_TOPIC;
+    extern char* MQTT_PUBLIC_KEY_TOPIC;
+    extern char* MQTT_DEVICE_ID;
+    extern int MQTT_TIMEOUT;
 }
+
+#endif // COMMUNICATION_NUMBER_HELPER_HPP
