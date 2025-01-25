@@ -9,6 +9,11 @@ enum UartFrameConstants
     UART_FRAME_TRAILER_2 = 0xE2
 };
 
+enum Dummy
+{
+    DUMMY = 0x00
+};
+
 enum UartParserState
 {
     VERIFY_HEADER_1_BYTE,

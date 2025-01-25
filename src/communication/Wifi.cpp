@@ -39,9 +39,9 @@ bool Wifi::connect()
     while (WiFi.status() != WL_CONNECTED)
     {
         delay(TIMEOUT_FOR_CONNECTING_WIFI);
-        PLAT_LOG_ED("%s", ".");
+        PLAT_LOG_ED(__FMT_STR__, ".");
     }
-    PLAT_LOG_D("%s","");
+    PLAT_LOG_D(__FMT_STR__,"");
     PLAT_LOG_D("Connected to WiFi network %s", m_wifiSsid);
     PLAT_LOG_D("IP Address: %s", WiFi.localIP().toString().c_str());
     m_isWifiConnected = true;

@@ -1,8 +1,13 @@
+/********** TEST ZONE *************/
+#include "test/frameProtocol/uartFrame/uartFrameTest.hpp"
+/********** TEST ZONE *************/
+
 #include <Arduino.h>
 #include "setupConfiguration/utils.hpp"
 #include "setupConfiguration/SetupNumberHelper.hpp"
 #include "communication/MQTT.hpp"
 #include "communication/Wifi.hpp"
+#include "setupConfiguration/utils.hpp"
 
 auto mqtt = MQTT::create(
       MQTTHelper::MQTT_SERVER, 
@@ -23,5 +28,7 @@ void setup() {
 
 void loop() {
     mqtt->connect();
+    Test::UartFrameTest::frameParserTest();
+    delay(5000);
 }
 

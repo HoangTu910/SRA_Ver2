@@ -3,6 +3,7 @@
 #include <vector>
 #include "CRC16.hpp"
 #include "FrameNumberHelper.hpp"
+#include "setupConfiguration/utils.hpp"
 
 #define UART_FRAME_MAX_DATA_SIZE 255
 
@@ -53,6 +54,7 @@ public:
 
     /**
      * @brief Parse each byte of frame and verify the frame
+     * @param byteFrame The byte to parse
      */
     void parseFrame(uint8_t byteFrame);
 
@@ -61,33 +63,100 @@ public:
      */
     void resetParserState();
 
-    
     /**
      * @brief Reset frame buffer
      */
     void resetFrameBuffer();
 
     /**
-     * @brief Check each byte of frame 
+     * @brief Check if the first header byte is valid
+     * @param byteFrame The byte to check
+     * @return True if valid, false otherwise
      */
     bool isFirstHeaderByteValid(uint8_t byteFrame);
+
+    /**
+     * @brief Check if the second header byte is valid
+     * @param byteFrame The byte to check
+     * @return True if valid, false otherwise
+     */
     bool isSecondHeaderByteValid(uint8_t byteFrame);
+
+    /**
+     * @brief Check if the first byte of data length is valid
+     * @param byteFrame The byte to check
+     * @return True if valid, false otherwise
+     */
     bool isDataLengthFirstByteValid(uint8_t byteFrame);
+
+    /**
+     * @brief Check if the second byte of data length is valid
+     * @param byteFrame The byte to check
+     * @return True if valid, false otherwise
+     */
     bool isDataLengthSecondByteValid(uint8_t byteFrame);
+
+    /**
+     * @brief Check if the first trailer byte is valid
+     * @param byteFrame The byte to check
+     * @return True if valid, false otherwise
+     */
     bool isFirstTrailerByteValid(uint8_t byteFrame);
+
+    /**
+     * @brief Check if the second trailer byte is valid
+     * @param byteFrame The byte to check
+     * @return True if valid, false otherwise
+     */
     bool isSecondTrailerByteValid(uint8_t byteFrame);
+
+    /**
+     * @brief Check if the first CRC byte is valid
+     * @param byteFrame The byte to check
+     * @return True if valid, false otherwise
+     */
     bool isCrcFirstByteValid(uint8_t byteFrame);
+
+    /**
+     * @brief Check if the second CRC byte is valid
+     * @param byteFrame The byte to check
+     * @return True if valid, false otherwise
+     */
     bool isCrcSecondByteValid(uint8_t byteFrame);
+
+    /**
+     * @brief Check if the received CRC matches the calculated CRC
+     * @param crcReceive The received CRC value
+     * @return True if matched, false otherwise
+     */
     bool isCrcMatched(uint16_t crcReceive);
+
     /**
      * @brief Collect each byte of data
+     * @param byteFrame The byte to collect
      */
     void collectData(uint8_t byteFrame);
 
     /**
      * @brief Smart pointer to create UartFrameData object
+     * @return A shared pointer to a new UartFrameData object
      */
-    static std::shared_ptr<UartFrameData> create();
+    static std::shared_ptr<UartFrame> create();
+
+    /**
+     * @brief Reset the state machine
+     */
+    void resetStateMachine();
+
+    /**
+     * @brief Handle frame error
+     */
+    void handleFrameError();
+
+    /**
+     * @brief This function is used for testing purpose
+     */
+    bool parseFrame(std::vector<uint8_t> byteBuffer);
 };
 }
 } // namespace Communication::UartFrame
