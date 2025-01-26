@@ -18,15 +18,24 @@ public:
     Wifi(char *wifiSsid, char *wifiPassword, bool isWifiConnected = false);
     ~Wifi();
 
-    //setter
+    /**
+     * @brief Set the Wifi Ssid object
+     */
     void setWifiSsid(char *wifiSsid);
     void setWifiPassword(char *wifiPassword);
 
-    //getter
+    
+    /**
+     * @brief Get the Wifi Ssid object
+     * @return char* 
+     */
     char *getWifiSsid();
     char *getWifiPassword();
 
-    //configuration
+    
+    /**
+     * @brief Connect to Wifi network
+     */
     bool connect();
     void disconnect();
     bool isConnected() const;

@@ -27,6 +27,8 @@ void UartFrame::constructFrame()
 
 void UartFrame::parseFrame(uint8_t byteFrame)
 {
+    m_lastByteTimestamp = Platform::GetCurrentTimeMs();
+    m_isParsingActive = true;
     switch (m_parserNextState)
     {
         case UartParserState::VERIFY_HEADER_1_BYTE:
@@ -197,13 +199,26 @@ bool UartFrame::parseFrame(std::vector<uint8_t> byteBuffer)
     for(uint8_t i : byteBuffer)
     {
         parseFrame(i);
+        checkTimeout();
     }
     while (m_parserNextState != UartParserState::FRAME_COMPLETE && m_parserNextState != UartParserState::FRAME_ERROR)
     {
         parseFrame(Dummy::DUMMY); // Pass dummy byte to continue state machine
+        checkTimeout();
     }
     // PLAT_LOG_D("[PARSER STATE] %d", static_cast<int>(m_parserFinalState));
     return m_parserFinalState == UartParserState::FRAME_COMPLETE;
+}
+
+void UartFrame::checkTimeout()
+{
+    if (!m_isParsingActive) return;  
+    uint32_t currentTime = Platform::GetCurrentTimeMs();
+    if ((currentTime - m_lastByteTimestamp) >= UartTimer::UART_FRAME_TIMEOUT_MS) {
+        PLAT_LOG_D(__FMT_STR__,"Timeout! Resetting parser.");
+        resetStateMachine();
+        m_isParsingActive = false;
+    }
 }
 
 void UartFrame::resetStateMachine()

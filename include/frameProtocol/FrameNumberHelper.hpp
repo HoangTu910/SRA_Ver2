@@ -1,5 +1,9 @@
 #define BYTE_MAX 255
 #define KILO_BYTE_MAX 1024
+#define AUTH_TAG_SIZE 16
+#define PUBLIC_KEY_SIZE 32
+#define ENCRYPTED_PAYLOAD_SIZE 1024
+#define NONCE_SIZE 16
 
 enum UartFrameConstants
 {
@@ -12,6 +16,11 @@ enum UartFrameConstants
 enum Dummy
 {
     DUMMY = 0x00
+};
+
+enum UartTimer
+{
+    UART_FRAME_TIMEOUT_MS = 100
 };
 
 enum UartParserState
@@ -28,4 +37,13 @@ enum UartParserState
     VERIFY_CRC,
     FRAME_COMPLETE,
     FRAME_ERROR
+};
+
+enum ServerFrameConstants
+{
+    SERVER_FRAME_PREAMBLE = 0xABCD,
+    SERVER_FRAME_IDENTIFIER_ID = 0x16050910,
+    SERVER_FRAME_PACKET_TYPE = 0x01,
+    SERVER_FRAME_SEQUENCE_NUMBER = 0x0001,
+    SERVER_FRAME_AUTH_TAG = 0x01
 };

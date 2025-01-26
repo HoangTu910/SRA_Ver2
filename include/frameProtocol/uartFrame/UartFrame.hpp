@@ -4,6 +4,7 @@
 #include "CRC16.hpp"
 #include "FrameNumberHelper.hpp"
 #include "setupConfiguration/utils.hpp"
+#include "platform/platform.hpp"
 
 #define UART_FRAME_MAX_DATA_SIZE 255
 
@@ -36,6 +37,8 @@ private:
     std::vector<uint8_t> m_frameBuffer;
     UartParserState m_parserNextState;
     UartParserState m_parserFinalState;
+    uint32_t m_lastByteTimestamp;
+    bool m_isParsingActive = false;
 public:
     /**
      * @brief Constructor of UartFrame
@@ -157,6 +160,11 @@ public:
      * @brief This function is used for testing purpose
      */
     bool parseFrame(std::vector<uint8_t> byteBuffer);
+
+    /**
+     * @brief Check timeout
+     */
+    void checkTimeout();
 };
 }
 } // namespace Communication::UartFrame

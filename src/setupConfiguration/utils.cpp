@@ -1,26 +1,9 @@
 #include "setupConfiguration/utils.hpp"
 #include <stdarg.h>  // For va_list, va_start, etc.
 #include <iostream>  // For std::cerr
-#include <fstream> 
 /** 
 *@brief Print debug message to serial monitor. Simple to use instead of Serial.print.
 */
-void writeToFile(const char* message) {
-    std::ofstream logFile("C:/Users/Hii/Desktop/Thesis/DVGW/src/test/logTestCase.txt", std::ios::app);
-    if (!logFile.is_open()) {
-        std::cerr << "Failed to open log file!" << std::endl;
-        return;
-    }
-    logFile << "  ^__^         " << std::endl;
-    logFile << "  (oo)\\_______ " << std::endl;
-    logFile << "  (__)\\       )\\/\\ " << std::endl;
-    logFile << "      ||----w |    " << std::endl;
-    logFile << "      ||     ||    " << std::endl;
-    logFile << message << std::endl;
-
-    // Close the file
-    logFile.close();
-}
 
 void PLAT_LOG_D(const char* message) {
     Serial.println(message);
@@ -66,5 +49,4 @@ void PLAT_WRITE_LOG(const char* format, ...) {
     va_start(args, format);
     vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
-    writeToFile(buffer);               // Write to file
 }

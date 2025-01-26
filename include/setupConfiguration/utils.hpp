@@ -9,7 +9,7 @@
 #define ANSI_COLOR_GREEN "\033[32m"
 #define ANSI_COLOR_RED   "\033[31m"
 #define ANSI_COLOR_RESET "\033[0m"
-#define LOG_BUFFER 512
+#define LOG_BUFFER 256
 #define __FMT_STR__ "%s"
 #define __FMT_INT__ "%d"
 #define __FMT_FLOAT__ "%f"
