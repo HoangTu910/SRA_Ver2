@@ -221,6 +221,15 @@ void UartFrame::checkTimeout()
     }
 }
 
+UartParserState UartFrame::getFinalState()
+{
+    return m_parserFinalState;
+}
+
+std::vector<uint8_t> UartFrame::getFrameBuffer()
+{
+    return m_frameBuffer;
+}
 void UartFrame::resetStateMachine()
 {
     resetFrameBuffer();

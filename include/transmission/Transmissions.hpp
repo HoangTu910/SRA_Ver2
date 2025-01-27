@@ -1,0 +1,51 @@
+#include "frameProtocol/uartFrame/UartFrame.hpp"
+#include "frameProtocol/serverFrame/ServerFrame.hpp"
+#include "setupConfiguration/SetupNumberHelper.hpp"
+#include "asconCryptography/Ascon128a.hpp"
+
+class Transmissions
+{
+private:
+    TransmissionState m_transmissionNextState;
+    TransmissionState m_transmissionFinalState;
+    unsigned char *m_data;
+public:
+    /**
+     * @brief Constructor of Transmission
+     */
+    Transmissions();
+
+    /**
+     * @brief Destructor of Transmission
+     */
+    ~Transmissions();
+
+    /**
+     * @brief Smart pointer to create Transmission object
+     */
+    static std::shared_ptr<Transmissions> create();
+
+    /**
+     * @brief Reset the state machine
+     */
+    void resetStateMachine();
+
+    /**
+     * @brief Handle transmission error
+     */
+    void handleTransmissionError();
+
+    /**
+     * @brief Reset parser state
+     */
+    void resetTransmissionState();
+
+    /**
+     * @brief Start transmission 
+     * @brief First, start to parse the frame to get data
+     * @brief Process handshake using EDHC to get key for encryption
+     * @brief Encrypt the data using Ascon128a
+     * @brief Send the data to server
+     */
+    void startTransmissionProcess();
+};

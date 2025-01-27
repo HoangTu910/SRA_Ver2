@@ -165,6 +165,18 @@ public:
      * @brief Check timeout
      */
     void checkTimeout();
+
+    /**
+     * @brief Get the final state of the parser
+     * @return The final state to execute next step
+     */
+    UartParserState getFinalState();
+
+    /**
+     * @brief Get the data from the frame
+     * @return The data from the frame
+     */
+    std::vector<uint8_t> getFrameBuffer();
 };
 }
 } // namespace Communication::UartFrame

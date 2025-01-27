@@ -1,3 +1,5 @@
+#pragma once
+
 #define BYTE_MAX 255
 #define KILO_BYTE_MAX 1024
 #define AUTH_TAG_SIZE 16
