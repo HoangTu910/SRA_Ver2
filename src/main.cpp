@@ -1,5 +1,6 @@
 /********** TEST ZONE *************/
 #include "test/frameProtocol/uartFrame/uartFrameTest.hpp"
+#include "test/asconCryptography/Ascon128aTest.hpp"
 /********** TEST ZONE *************/
 
 #include <Arduino.h>
@@ -18,6 +19,7 @@ auto mqtt = MQTT::create(
       MQTTHelper::MQTT_USER,
       MQTTHelper::MQTT_PASSWORD);
 auto wifi = Wifi::create(WifiHelper::SSID, WifiHelper::PASSWORD);
+auto ascon128a = Cryptography::Ascon128a::create();
 
 void setup() {
     Serial.begin(Serial::BAUD_RATE);
@@ -28,7 +30,8 @@ void setup() {
 
 void loop() {
     mqtt->connect();
-    Test::UartFrameTest::frameParserTest();
+    // Test::UartFrameTest::frameParserTest(); // Frame test passed
+    Test::Ascon128aTest::RunAscon128aTest(); // Ascon test passed
     delay(5000);
 }
 

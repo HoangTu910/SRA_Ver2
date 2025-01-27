@@ -1,5 +1,6 @@
 #ifndef DECRYPT_H_
 #include "asconCore.hpp"
+#include "asconPrintstate.hpp"
 
 namespace Ascon {
 int crypto_aead_decrypt(unsigned char* m, unsigned long long* mlen,
