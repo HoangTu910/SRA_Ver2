@@ -2,17 +2,25 @@
 
 Cryptography::Ascon128a::Ascon128a()
 {
+    m_nonce = new unsigned char[ASCON_NONCE_SIZE];
     m_associatedData = reinterpret_cast<const unsigned char*>(ASCON_ASSOCIATED_DATA);;
     m_associatedDataLength = AsconMagicNumber::ASCON_ASSOCIATED_DATALENGTH;
+    Ascon::generate_nonce(m_nonce);
 }
 
 Cryptography::Ascon128a::~Ascon128a()
 {
+    delete[] m_nonce;
 }
 
 unsigned char *Cryptography::Ascon128a::getCipherText()
 {
     return m_cipherText;
+}
+
+unsigned char *Cryptography::Ascon128a::getNonce()
+{
+    return m_nonce;
 }
 
 void Cryptography::Ascon128a::setPlainText(unsigned char *plainText, unsigned long long plainTextLength)
@@ -24,6 +32,11 @@ void Cryptography::Ascon128a::setPlainText(unsigned char *plainText, unsigned lo
 void Cryptography::Ascon128a::setKey(unsigned char *key)
 {
     m_key = key;
+}
+
+void Cryptography::Ascon128a::setNonce()
+{
+    Ascon::generate_nonce(m_nonce);
 }
 
 void Cryptography::Ascon128a::setNonce(unsigned char *nonce)

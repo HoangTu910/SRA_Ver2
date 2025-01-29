@@ -11,6 +11,7 @@ private:
     TransmissionState m_transmissionNextState;
     TransmissionState m_transmissionFinalState;
     unsigned char *m_data;
+    unsigned long long m_dataLength;
 public:
     /**
      * @brief Constructor of Transmission

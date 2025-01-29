@@ -9,8 +9,8 @@ namespace WifiHelper
     char *SSID = (char*)"Dau Cafe Ngoai Troi";
     char *PASSWORD = (char*)"Mocua24h";
 
-    // char *SSID = (char*)"";
-    // char *PASSWORD = (char*)"";
+    // char *SSID = (char*)"Hoang Tuan";
+    // char *PASSWORD = (char*)"03081973";
 }
 
 namespace MQTTHelper

@@ -42,12 +42,23 @@ public:
     unsigned char *getCipherText();
 
     /**
+     * @brief Get nonce
+     */
+    unsigned char *getNonce();
+
+    /**
      * @brief Set the key for encryption
      */
     void setKey(unsigned char *key);
 
     /**
      * @brief Set the nonce for encryption
+     */
+    void setNonce();
+
+    /**
+     * @brief Set the nonce for encryption
+     * @param nonce The nonce to set
      */
     void setNonce(unsigned char *nonce);
 

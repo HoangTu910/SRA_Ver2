@@ -2,7 +2,9 @@
 
 Transmissions::Transmissions() : 
         m_uart(Transmission::UartFrame::UartFrame::create()),
-        m_ascon128a(Cryptography::Ascon128a::create())
+        m_ascon128a(Cryptography::Ascon128a::create()),
+        m_data(nullptr),
+        m_dataLength(0)
 {
     resetTransmissionState();
 }
@@ -26,6 +28,7 @@ void Transmissions::resetTransmissionState()
 {
     m_transmissionNextState = TransmissionState::PROCESS_FRAME_PARSING;
     m_transmissionFinalState = TransmissionState::PROCESS_FRAME_PARSING;
+    m_dataLength = 0;
 }
 
 void Transmissions::startTransmissionProcess()
@@ -38,7 +41,14 @@ void Transmissions::startTransmissionProcess()
             bool isUpdateAndParsingComplete = m_uart->update();
             if(isUpdateAndParsingComplete)
             {
-                m_data = m_uart->getFrameBuffer().data();
+                std::vector<uint8_t> frameBuffer = m_uart->getFrameBuffer();  
+                if (m_data) {
+                    delete[] m_data; 
+                    m_data = nullptr;
+                }
+                m_data = new unsigned char[frameBuffer.size()];  
+                memcpy(m_data, frameBuffer.data(), frameBuffer.size()); 
+                m_dataLength = m_uart->getFrameBuffer().size();
                 m_transmissionNextState = TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE;
                 PLAT_LOG_D(__FMT_STR__, "STEP 1 - FRAME PARSING COMPLETE");
             }
@@ -55,15 +65,25 @@ void Transmissions::startTransmissionProcess()
             PLAT_LOG_D(__FMT_STR__, "STEP 2 - HANDSHAKE AND KEY EXCHANGE COMPLETE");
             m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
             break;
-        case TransmissionState::PROCESS_ENCRYPTION:
-            /**
-             * @brief Set the key and nonce for encryption
-             */
-            // setupDataForEncryption(); // will be implemented later
-            // m_ascon128a->encrypt();
+        case TransmissionState::PROCESS_ENCRYPTION:{\
+            m_ascon128a->setPlainText(m_data, m_dataLength);
+            unsigned char fixedKey[ASCON_KEY_SIZE] = {
+                0x01, 0x02, 0x03, 0x04,
+                0x05, 0x06, 0x07, 0x08,
+                0x09, 0x0A, 0x0B, 0x0C,
+                0x0D, 0x0E, 0x0F, 0x10
+            };
+            for(int i = 0; i < m_dataLength; i++)
+            {
+                PLAT_LOG_D("Data[%d]: %d", i, m_data[i]);
+            }
+            m_ascon128a->setKey(fixedKey); // will be replaced with key from handshake
+            m_ascon128a->encrypt();
+            m_ascon128a->decrypt(); //Decrypt here just for verifying if the data is correct
             m_transmissionNextState = TransmissionState::SEND_DATA_TO_SERVER;
             PLAT_LOG_D(__FMT_STR__, "STEP 3 - ENCRYPTION COMPLETE");
             break;
+        }
         case TransmissionState::SEND_DATA_TO_SERVER:
             // Send the data to server
             // sendDataToServer(); // will be implemented later
