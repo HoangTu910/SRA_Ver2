@@ -6,6 +6,8 @@
 class Transmissions
 {
 private:
+    std::shared_ptr<Transmission::UartFrame::UartFrame> m_uart;
+    std::shared_ptr<Cryptography::Ascon128a> m_ascon128a;
     TransmissionState m_transmissionNextState;
     TransmissionState m_transmissionFinalState;
     unsigned char *m_data;

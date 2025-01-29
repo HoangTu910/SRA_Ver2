@@ -1,12 +1,15 @@
 #include <stdint.h>
 #include <memory>
 #include <vector>
+#include <Arduino.h>
 #include "CRC16.hpp"
 #include "FrameNumberHelper.hpp"
 #include "setupConfiguration/utils.hpp"
 #include "platform/platform.hpp"
+#include "setupConfiguration/SetupNumberHelper.hpp"
 
 #define UART_FRAME_MAX_DATA_SIZE 255
+#pragma once
 
 /**
  * @brief The data will be construct following this frame before sending to device or receive from device.
@@ -35,10 +38,13 @@ private:
     uint16_t m_dataLength;
     uint16_t m_crcReceive;
     std::vector<uint8_t> m_frameBuffer;
+    std::vector<uint8_t> m_frameReceiveBuffer;
     UartParserState m_parserNextState;
     UartParserState m_parserFinalState;
     uint32_t m_lastByteTimestamp;
     bool m_isParsingActive = false;
+    bool m_isParsingComplete = false;
+    HardwareSerial *m_uart = &Serial1;
 public:
     /**
      * @brief Constructor of UartFrame
@@ -177,6 +183,22 @@ public:
      * @return The data from the frame
      */
     std::vector<uint8_t> getFrameBuffer();
+
+    /**
+     * @brief Begin uart communication
+     */
+    void beginUartCommunication();
+
+    /**
+     * @brief Update data
+     */
+    bool update();
+
+    /**
+     * @brief Check if parsing complete
+     * @return True if parsing complete, false otherwise
+     */
+    bool isParsingComplete();
 };
 }
 } // namespace Communication::UartFrame

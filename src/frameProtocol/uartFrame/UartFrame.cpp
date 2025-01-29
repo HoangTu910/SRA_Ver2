@@ -7,14 +7,13 @@ namespace UartFrame
 
 UartFrame::UartFrame()
 {
+    beginUartCommunication();
     resetStateMachine();
 }
-
 
 UartFrame::~UartFrame()
 {
 }
-
 
 void UartFrame::constructFrame()
 {
@@ -31,49 +30,50 @@ void UartFrame::parseFrame(uint8_t byteFrame)
     m_isParsingActive = true;
     switch (m_parserNextState)
     {
-        case UartParserState::VERIFY_HEADER_1_BYTE:
-            m_parserNextState = isFirstHeaderByteValid(byteFrame) ? UartParserState::VERIFY_HEADER_2_BYTE : UartParserState::FRAME_ERROR;
-            break;
-        case UartParserState::VERIFY_HEADER_2_BYTE:
-            m_parserNextState = isSecondHeaderByteValid(byteFrame) ? UartParserState::WAIT_FOR_DATA_LENGTH_1_BYTE : UartParserState::FRAME_ERROR;
-            break;
-        case UartParserState::WAIT_FOR_DATA_LENGTH_1_BYTE:
-            m_parserNextState = isDataLengthFirstByteValid(byteFrame) ? UartParserState::WAIT_FOR_DATA_LENGTH_2_BYTE : UartParserState::FRAME_ERROR;
-            break;
-        case UartParserState::WAIT_FOR_DATA_LENGTH_2_BYTE:
-            m_parserNextState = isDataLengthSecondByteValid(byteFrame) ? UartParserState::RECEIVE_DATA : UartParserState::FRAME_ERROR;
-            break;
-        case UartParserState::RECEIVE_DATA:
-            collectData(byteFrame);
-            m_parserNextState = (m_frameBuffer.size() == m_dataLength) ? UartParserState::VERIFY_TRAILER_1_BYTE : UartParserState::RECEIVE_DATA;
-            break;
-        case UartParserState::VERIFY_TRAILER_1_BYTE:
-            m_parserNextState = isFirstTrailerByteValid(byteFrame) ? UartParserState::VERIFY_TRAILER_2_BYTE : UartParserState::FRAME_ERROR;
-            break;
-        case UartParserState::VERIFY_TRAILER_2_BYTE:
-            m_parserNextState = isSecondTrailerByteValid(byteFrame) ? UartParserState::WAIT_FOR_CRC_1_BYTE : UartParserState::FRAME_ERROR;
-            break;
-        case UartParserState::WAIT_FOR_CRC_1_BYTE:
-            m_parserNextState = isCrcFirstByteValid(byteFrame) ? UartParserState::WAIT_FOR_CRC_2_BYTE : UartParserState::FRAME_ERROR;
-            break;
-        case UartParserState::WAIT_FOR_CRC_2_BYTE:
-            m_parserNextState = isCrcSecondByteValid(byteFrame) ? UartParserState::VERIFY_CRC : UartParserState::FRAME_ERROR;
-            break;
-        case UartParserState::VERIFY_CRC: {
-            uint16_t crcCalculatedFromData = CRC16::calculateCRC(m_frameBuffer.data(), m_frameBuffer.size());
-            m_parserNextState = isCrcMatched(crcCalculatedFromData) ? UartParserState::FRAME_COMPLETE : UartParserState::FRAME_ERROR;
-            break;
-        }
-        case UartParserState::FRAME_COMPLETE:
-            // processCompleteFrame();
-            resetStateMachine();
-            break;
-        case UartParserState::FRAME_ERROR:
-            // handleFrameError();
-            break;
-        default:
-            resetStateMachine();
-            break;
+    case UartParserState::VERIFY_HEADER_1_BYTE:
+        m_parserNextState = isFirstHeaderByteValid(byteFrame) ? UartParserState::VERIFY_HEADER_2_BYTE : UartParserState::FRAME_ERROR;
+        break;
+    case UartParserState::VERIFY_HEADER_2_BYTE:
+        m_parserNextState = isSecondHeaderByteValid(byteFrame) ? UartParserState::WAIT_FOR_DATA_LENGTH_1_BYTE : UartParserState::FRAME_ERROR;
+        break;
+    case UartParserState::WAIT_FOR_DATA_LENGTH_1_BYTE:
+        m_parserNextState = isDataLengthFirstByteValid(byteFrame) ? UartParserState::WAIT_FOR_DATA_LENGTH_2_BYTE : UartParserState::FRAME_ERROR;
+        break;
+    case UartParserState::WAIT_FOR_DATA_LENGTH_2_BYTE:
+        m_parserNextState = isDataLengthSecondByteValid(byteFrame) ? UartParserState::RECEIVE_DATA : UartParserState::FRAME_ERROR;
+        break;
+    case UartParserState::RECEIVE_DATA:
+        collectData(byteFrame);
+        m_parserNextState = (m_frameBuffer.size() == m_dataLength) ? UartParserState::VERIFY_TRAILER_1_BYTE : UartParserState::RECEIVE_DATA;
+        break;
+    case UartParserState::VERIFY_TRAILER_1_BYTE:
+        m_parserNextState = isFirstTrailerByteValid(byteFrame) ? UartParserState::VERIFY_TRAILER_2_BYTE : UartParserState::FRAME_ERROR;
+        break;
+    case UartParserState::VERIFY_TRAILER_2_BYTE:
+        m_parserNextState = isSecondTrailerByteValid(byteFrame) ? UartParserState::WAIT_FOR_CRC_1_BYTE : UartParserState::FRAME_ERROR;
+        break;
+    case UartParserState::WAIT_FOR_CRC_1_BYTE:
+        m_parserNextState = isCrcFirstByteValid(byteFrame) ? UartParserState::WAIT_FOR_CRC_2_BYTE : UartParserState::FRAME_ERROR;
+        break;
+    case UartParserState::WAIT_FOR_CRC_2_BYTE:
+        m_parserNextState = isCrcSecondByteValid(byteFrame) ? UartParserState::VERIFY_CRC : UartParserState::FRAME_ERROR;
+        break;
+    case UartParserState::VERIFY_CRC:
+    {
+        uint16_t crcCalculatedFromData = CRC16::calculateCRC(m_frameBuffer.data(), m_frameBuffer.size());
+        m_parserNextState = isCrcMatched(crcCalculatedFromData) ? UartParserState::FRAME_COMPLETE : UartParserState::FRAME_ERROR;
+        break;
+    }
+    case UartParserState::FRAME_COMPLETE:
+        // processCompleteFrame();
+        // resetStateMachine();
+        break;
+    case UartParserState::FRAME_ERROR:
+        // handleFrameError();
+        break;
+    default:
+        resetStateMachine();
+        break;
     }
     m_parserFinalState = m_parserNextState;
 }
@@ -87,6 +87,7 @@ void UartFrame::resetParserState()
 void UartFrame::resetFrameBuffer()
 {
     m_frameBuffer.clear();
+    m_frameReceiveBuffer.clear();
 }
 
 bool UartFrame::isFirstHeaderByteValid(uint8_t byteFrame)
@@ -183,20 +184,24 @@ bool UartFrame::isCrcMatched(uint16_t crcCalculatedFromData)
     return false;
 }
 
-void UartFrame::collectData(uint8_t byteFrame) {
-    if (m_frameBuffer.size() < UART_FRAME_MAX_DATA_SIZE) {
+void UartFrame::collectData(uint8_t byteFrame)
+{
+    if (m_frameBuffer.size() < UART_FRAME_MAX_DATA_SIZE)
+    {
         m_frameBuffer.push_back(byteFrame);
-    } else {
-        PLAT_ASSERT((m_frameBuffer.size() < UART_FRAME_MAX_DATA_SIZE), 
-                    "[BUFFER OVERFLOW] Max data size reached: %d", 
-                        UART_FRAME_MAX_DATA_SIZE);
+    }
+    else
+    {
+        PLAT_ASSERT((m_frameBuffer.size() < UART_FRAME_MAX_DATA_SIZE),
+                    "[BUFFER OVERFLOW] Max data size reached: %d",
+                    UART_FRAME_MAX_DATA_SIZE);
         m_parserNextState = UartParserState::FRAME_ERROR;
     }
 }
 
 bool UartFrame::parseFrame(std::vector<uint8_t> byteBuffer)
 {
-    for(uint8_t i : byteBuffer)
+    for (uint8_t i : byteBuffer)
     {
         parseFrame(i);
         checkTimeout();
@@ -212,10 +217,12 @@ bool UartFrame::parseFrame(std::vector<uint8_t> byteBuffer)
 
 void UartFrame::checkTimeout()
 {
-    if (!m_isParsingActive) return;  
+    if (!m_isParsingActive)
+        return;
     uint32_t currentTime = Platform::GetCurrentTimeMs();
-    if ((currentTime - m_lastByteTimestamp) >= UartTimer::UART_FRAME_TIMEOUT_MS) {
-        PLAT_LOG_D(__FMT_STR__,"Timeout! Resetting parser.");
+    if ((currentTime - m_lastByteTimestamp) >= UartTimer::UART_FRAME_TIMEOUT_MS)
+    {
+        PLAT_LOG_D(__FMT_STR__, "Timeout! Resetting parser.");
         resetStateMachine();
         m_isParsingActive = false;
     }
@@ -230,9 +237,38 @@ std::vector<uint8_t> UartFrame::getFrameBuffer()
 {
     return m_frameBuffer;
 }
+
+void UartFrame::beginUartCommunication()
+{
+    m_uart->begin(Serial::BAUD_RATE, SERIAL_8N1, Serial::TX_PIN, Serial::RX_PIN);
+    PLAT_LOG_D(__FMT_STR__, "UART initialized");
+}
+
+bool UartFrame::update()
+{
+    PLAT_ASSERT_NULL(m_uart, __FMT_STR__, "UART instance is null");
+    PLAT_LOG_D(__FMT_STR__, "[==FRAME STATE==] Updating parser.");
+    while (m_uart->available())
+    {
+        uint8_t byte = m_uart->read();
+        m_frameReceiveBuffer.push_back(byte);
+        // PLAT_LOG_D("[==FRAME STATE==] Byte received: %d", byte);
+    }
+    bool isParseProcessComplete = parseFrame(m_frameReceiveBuffer);
+
+    resetStateMachine();
+
+    return isParseProcessComplete;
+}
+
+bool UartFrame::isParsingComplete()
+{
+    return m_isParsingComplete;
+}
+
 void UartFrame::resetStateMachine()
 {
-    resetFrameBuffer();
+    // resetFrameBuffer();
     resetParserState();
     m_dataLength = 0;
     m_crcReceive = 0;
@@ -244,9 +280,9 @@ void UartFrame::handleFrameError()
     resetStateMachine();
 }
 
-std::shared_ptr<UartFrame> UartFrame::create() 
+std::shared_ptr<UartFrame> UartFrame::create()
 {
     return std::make_shared<UartFrame>();
 }
-} 
+}
 } // namespace Transmission::UartFrame
