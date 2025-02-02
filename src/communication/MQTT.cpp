@@ -1,5 +1,6 @@
 #include "communication/MQTT.hpp"
 #include "setupConfiguration/utils.hpp"
+#include "MQTT.hpp"
 
 MQTT::MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword)
     : m_mqttServer(mqttServer),
@@ -83,6 +84,11 @@ void MQTT::setupServer()
 {
     m_client.setServer(m_mqttServer, m_mqttPort);
     m_client.setCallback([this](char *topic, byte *payload, unsigned int length) { this->callBack(topic, payload, length); });
+}
+
+bool MQTT::publishData(const void *data, size_t dataLength)
+{
+    return m_client.publish(m_mqttPublicKeyTopic, (const uint8_t *)data, dataLength);
 }
 
 std::shared_ptr<MQTT> MQTT::create(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword)

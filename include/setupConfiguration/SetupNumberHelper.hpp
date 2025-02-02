@@ -21,4 +21,9 @@ enum TransmissionState
     TRANSMISSION_ERROR
 };
 
+enum Device
+{
+    Identifier = 0x01
+};
+
 #endif // SETUP_NUMBER_HELPER_HPP

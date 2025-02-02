@@ -50,3 +50,13 @@ void PLAT_WRITE_LOG(const char* format, ...) {
     vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
 }
+
+void PLAT_PRINT_BYTES(const char* text, const uint8_t* b, uint64_t len) {
+    char buffer[256]; // Adjust size as needed
+    size_t offset = snprintf(buffer, sizeof(buffer), "%s[%" PRIu64 "]\t= {", text, len);
+    for (uint64_t i = 0; i < len && offset < sizeof(buffer) - 3; ++i) {
+        offset += snprintf(buffer + offset, sizeof(buffer) - offset, "0x%02X%s", b[i], i < len - 1 ? ", " : "");
+    }
+    snprintf(buffer + offset, sizeof(buffer) - offset, "}");
+    PLAT_LOG_D("%s", buffer);
+}

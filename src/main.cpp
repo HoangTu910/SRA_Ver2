@@ -6,19 +6,10 @@
 #include <Arduino.h>
 #include "setupConfiguration/utils.hpp"
 #include "setupConfiguration/SetupNumberHelper.hpp"
-#include "communication/MQTT.hpp"
 #include "communication/Wifi.hpp"
 #include "setupConfiguration/utils.hpp"
 #include "transmission/Transmissions.hpp"
 
-auto mqtt = MQTT::create(
-      MQTTHelper::MQTT_SERVER, 
-      MQTTHelper::MQTT_PORT, 
-      MQTTHelper::MQTT_DEVICE_ID, 
-      MQTTHelper::MQTT_DATA_TOPIC, 
-      MQTTHelper::MQTT_PUBLIC_KEY_TOPIC,
-      MQTTHelper::MQTT_USER,
-      MQTTHelper::MQTT_PASSWORD);
 auto wifi = Wifi::create(WifiHelper::SSID, WifiHelper::PASSWORD);
 auto ascon128a = Cryptography::Ascon128a::create();
 auto controller = Transmissions::create();
@@ -26,11 +17,10 @@ auto controller = Transmissions::create();
 void setup() {
     Serial.begin(Serial::BAUD_RATE);
     wifi->connect();
-    mqtt->setupServer();
 }
 
 void loop() {
-    mqtt->connect();
+    controller->loopMqtt();
     controller->startTransmissionProcess();
     __AIOT_FOR_MEDTECH_DESLAB__;
 }

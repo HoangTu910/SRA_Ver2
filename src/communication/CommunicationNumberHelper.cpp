@@ -20,7 +20,7 @@ namespace MQTTHelper
     char* MQTT_USER = (char*)"admin";
     char* MQTT_PASSWORD = (char*)"123";
     char* MQTT_DATA_TOPIC = (char*)"sensors/data";
-    char* MQTT_PUBLIC_KEY_TOPIC = (char*)"encrypt/dhexchange";
+    char* MQTT_PUBLIC_KEY_TOPIC = (char*)"handshake/ecdh";
     char* MQTT_DEVICE_ID = (char*)"newdevice123";
     int MQTT_TIMEOUT = 5000;
 }

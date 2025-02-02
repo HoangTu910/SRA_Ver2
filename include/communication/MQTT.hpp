@@ -45,6 +45,8 @@ public:
     void reconnect();
     void setupServer();
 
+    bool publishData(const void *data, size_t dataLength);
+
     static std::shared_ptr<MQTT> create(
         char *mqttServer, 
         int mqttPort, 

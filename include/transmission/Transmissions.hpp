@@ -2,12 +2,15 @@
 #include "frameProtocol/serverFrame/ServerFrame.hpp"
 #include "setupConfiguration/SetupNumberHelper.hpp"
 #include "asconCryptography/Ascon128a.hpp"
+#include "communication/MQTT.hpp"
 
 class Transmissions
 {
 private:
     std::shared_ptr<Transmission::UartFrame::UartFrame> m_uart;
     std::shared_ptr<Cryptography::Ascon128a> m_ascon128a;
+    std::shared_ptr<Transmission::ServerFrame::ServerFrame> m_server;
+    std::shared_ptr<MQTT> m_mqtt;
     TransmissionState m_transmissionNextState;
     TransmissionState m_transmissionFinalState;
     unsigned char *m_data;
@@ -51,4 +54,9 @@ public:
      * @brief Send the data to server
      */
     void startTransmissionProcess();
+
+    /**
+     * @brief Loop the MQTT connection
+     */
+    void loopMqtt();
 };

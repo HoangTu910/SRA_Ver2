@@ -42,5 +42,7 @@ void PLAT_WRITE_LOG(const char* format, ...);
 void TEST_PASSED(const char* message);
 void TEST_FAILED(const char* message);
 void TEST_RESULT(bool passed);
+void PLAT_PRINT_BYTES(const char* text, const uint8_t* b, uint64_t len);
+    
 
 #endif  // UTILS_H

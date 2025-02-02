@@ -3,9 +3,18 @@
 Transmissions::Transmissions() : 
         m_uart(Transmission::UartFrame::UartFrame::create()),
         m_ascon128a(Cryptography::Ascon128a::create()),
+        m_server(Transmission::ServerFrame::ServerFrame::create()),
+        m_mqtt(MQTT::create(MQTTHelper::MQTT_SERVER, 
+                            MQTTHelper::MQTT_PORT, 
+                            MQTTHelper::MQTT_DEVICE_ID, 
+                            MQTTHelper::MQTT_DATA_TOPIC, 
+                            MQTTHelper::MQTT_PUBLIC_KEY_TOPIC,
+                            MQTTHelper::MQTT_USER,
+                            MQTTHelper::MQTT_PASSWORD)),
         m_data(nullptr),
         m_dataLength(0)
 {
+    m_mqtt->setupServer();
     resetTransmissionState();
 }
 
@@ -60,9 +69,22 @@ void Transmissions::startTransmissionProcess()
             break;
         }
         case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:
-            // Process handshake using EDHC to get key for encryption
-            // ascon128a->processHandshake();
-            PLAT_LOG_D(__FMT_STR__, "STEP 2 - HANDSHAKE AND KEY EXCHANGE COMPLETE");
+            while(m_server->getHandshakeState() != HandshakeState::HANDSHAKE_COMPLETE)
+            {
+                m_server->performHandshake(m_mqtt);
+            }
+            m_server->resetHandshakeState();
+            PLAT_LOG_D(__FMT_STR__, "STEP 2 - HANDSHAKE AND KEY EXCHANGE COMPLETED");
+            // if(interval == match)
+            // {
+            //     processHandshake(); //perform key exchange - acquire new key for encryption
+            //     PLAT_LOG_D(__FMT_STR__, "STEP 2 - HANDSHAKE AND KEY EXCHANGE COMPLETED");
+            //     m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
+            // }
+            // else{
+            //     PLAT_LOG_D(__FMT_STR__, "STEP 2 - HANDSHAKE AND KEY EXCHANGE SKIPPED");
+            //     m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
+            // }
             m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
             break;
         case TransmissionState::PROCESS_ENCRYPTION:{\
@@ -99,4 +121,9 @@ void Transmissions::startTransmissionProcess()
             resetTransmissionState();
             break;
     }
+}
+
+void Transmissions::loopMqtt()
+{
+    m_mqtt->connect();
 }

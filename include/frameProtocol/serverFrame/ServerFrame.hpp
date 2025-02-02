@@ -1,10 +1,13 @@
 #include <stdint.h>
 #include <memory>
+#include <assert.h>
 #include <vector>
 #include "CRC16.hpp"
 #include "FrameNumberHelper.hpp"
 #include "setupConfiguration/utils.hpp"
 #include "platform/platform.hpp"
+#include "ellipticCurve/ecdh.hpp"
+#include "communication/MQTT.hpp"
 
 #define UART_FRAME_MAX_DATA_SIZE 255
 
@@ -17,20 +20,20 @@ namespace ServerFrame
 {
 namespace Handshake
 {
-typedef struct HandshakeFrameData
+typedef struct __attribute__((packed))
 {
     uint16_t s_preamble; // Sync bytes (e.g., 0xAA55)
     uint32_t s_identifierId; // Unique device/sensor ID
     uint8_t s_packetType; // 0x02 (Handshake)
     uint16_t s_sequenceNumber; // Monotonic counter for deduplication
-    uint8_t s_publicKey[PUBLIC_KEY_SIZE]; //Public key for encryption (32 bytes)
+    uint8_t s_publicKey[ECC_PUB_KEY_SIZE]; //Public key for encryption (32 bytes)
     uint8_t s_authTag[AUTH_TAG_SIZE]; // Integrity/authentication tag
 } HandshakeFrameData;
 }
 
 namespace DataFrame
 {
-typedef struct ServerFrameData
+typedef struct __attribute__((packed))
 {
     uint16_t s_preamble;           // Sync bytes (e.g., 0xAA55)
     uint32_t s_identifierId;       // Unique device/sensor ID
@@ -52,8 +55,7 @@ private:
     uint16_t m_dataLength;
     uint16_t m_crcReceive;
     std::vector<uint8_t> m_frameBuffer;
-    UartParserState m_parserNextState;
-    UartParserState m_parserFinalState;
+    HandshakeState m_handshakeNextState;
     uint32_t m_lastByteTimestamp;
     bool m_isParsingActive = false;
 public:
@@ -68,120 +70,26 @@ public:
     ~ServerFrame();
 
     /**
-     * @brief Construct frame from data
-     */
-    void constructFrame();
-
-    /**
-     * @brief Parse each byte of frame and verify the frame
-     * @param byteFrame The byte to parse
-     */
-    void parseFrame(uint8_t byteFrame);
-
-    /**
-     * @brief Reset parser state
-     */
-    void resetParserState();
-
-    /**
-     * @brief Reset frame buffer
-     */
-    void resetFrameBuffer();
-
-    /**
-     * @brief Check if the first header byte is valid
-     * @param byteFrame The byte to check
-     * @return True if valid, false otherwise
-     */
-    bool isFirstHeaderByteValid(uint8_t byteFrame);
-
-    /**
-     * @brief Check if the second header byte is valid
-     * @param byteFrame The byte to check
-     * @return True if valid, false otherwise
-     */
-    bool isSecondHeaderByteValid(uint8_t byteFrame);
-
-    /**
-     * @brief Check if the first byte of data length is valid
-     * @param byteFrame The byte to check
-     * @return True if valid, false otherwise
-     */
-    bool isDataLengthFirstByteValid(uint8_t byteFrame);
-
-    /**
-     * @brief Check if the second byte of data length is valid
-     * @param byteFrame The byte to check
-     * @return True if valid, false otherwise
-     */
-    bool isDataLengthSecondByteValid(uint8_t byteFrame);
-
-    /**
-     * @brief Check if the first trailer byte is valid
-     * @param byteFrame The byte to check
-     * @return True if valid, false otherwise
-     */
-    bool isFirstTrailerByteValid(uint8_t byteFrame);
-
-    /**
-     * @brief Check if the second trailer byte is valid
-     * @param byteFrame The byte to check
-     * @return True if valid, false otherwise
-     */
-    bool isSecondTrailerByteValid(uint8_t byteFrame);
-
-    /**
-     * @brief Check if the first CRC byte is valid
-     * @param byteFrame The byte to check
-     * @return True if valid, false otherwise
-     */
-    bool isCrcFirstByteValid(uint8_t byteFrame);
-
-    /**
-     * @brief Check if the second CRC byte is valid
-     * @param byteFrame The byte to check
-     * @return True if valid, false otherwise
-     */
-    bool isCrcSecondByteValid(uint8_t byteFrame);
-
-    /**
-     * @brief Check if the received CRC matches the calculated CRC
-     * @param crcReceive The received CRC value
-     * @return True if matched, false otherwise
-     */
-    bool isCrcMatched(uint16_t crcReceive);
-
-    /**
-     * @brief Collect each byte of data
-     * @param byteFrame The byte to collect
-     */
-    void collectData(uint8_t byteFrame);
-
-    /**
-     * @brief Smart pointer to create UartFrameData object
-     * @return A shared pointer to a new UartFrameData object
+     * @brief Smart pointer to create ServerFrameData object
+     * @return A shared pointer to a new ServerFrameData object
      */
     static std::shared_ptr<ServerFrame> create();
 
     /**
-     * @brief Reset the state machine
+     * @brief Perform handshake with server to acquire encryption key
      */
-    void resetStateMachine();
+    void performHandshake(std::shared_ptr<MQTT> mqtt);
 
     /**
-     * @brief Handle frame error
+     * @brief Reset handshake state machine
      */
-    void handleFrameError();
+    void resetHandshakeState();
 
     /**
-     * @brief This function is used for testing purpose
+     * @brief Get the current handshake state
+     * @return The current handshake state
      */
-    bool parseFrame(std::vector<uint8_t> byteBuffer);
-
-    /**
-     * @brief Check timeout
-     */
-    void checkTimeout();
+    HandshakeState getHandshakeState();
 };
 }
 } // namespace Communication::UartFrame
