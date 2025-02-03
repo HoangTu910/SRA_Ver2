@@ -17,11 +17,14 @@ private:
     char *m_mqttDeviceID;
     char *m_mqttDataTopic;
     char *m_mqttPublicKeyTopic;
+    char *m_mqttPublicKeyReceiveTopic;
     WiFiClient m_espClient;
     PubSubClient m_client;
 public:
     //constructor
-    MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword);
+    std::string m_mqttCallBackDataReceive;
+    bool m_mqttIsMessageArrived = false;
+    MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword, char *mqttPublicKeyReceiveTopic);
     ~MQTT();
 
     //setter
@@ -54,7 +57,8 @@ public:
         char *mqttDataTopic,
         char *mqttPublicKeyTopic, 
         char *mqttUser, 
-        char *mqttPassword);
+        char *mqttPassword,
+        char *mqttPublicKeyReceiveTopic);
 };
 
 #endif // MQTT_HPP

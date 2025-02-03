@@ -10,7 +10,8 @@ Transmissions::Transmissions() :
                             MQTTHelper::MQTT_DATA_TOPIC, 
                             MQTTHelper::MQTT_PUBLIC_KEY_TOPIC,
                             MQTTHelper::MQTT_USER,
-                            MQTTHelper::MQTT_PASSWORD)),
+                            MQTTHelper::MQTT_PASSWORD,
+                            MQTTHelper::MQTT_PUBLIC_KEY_RECEIVE_TOPIC)),
         m_data(nullptr),
         m_dataLength(0)
 {

@@ -15,6 +15,7 @@ namespace MQTTHelper
     extern char* MQTT_PASSWORD;
     extern char* MQTT_DATA_TOPIC;
     extern char* MQTT_PUBLIC_KEY_TOPIC;
+    extern char* MQTT_PUBLIC_KEY_RECEIVE_TOPIC;
     extern char* MQTT_DEVICE_ID;
     extern int MQTT_TIMEOUT;
 }

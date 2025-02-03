@@ -54,8 +54,27 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
         {
             mqtt->publishData(m_handshakeFrame.get(), sizeof(Handshake::HandshakeFrameData));
             PLAT_LOG_D(__FMT_STR__, "[HANDSHAKE STATE] - SEND PUBLIC KEY FRAME");
-            m_handshakeNextState = HandshakeState::HANDSHAKE_COMPLETE;
+            m_handshakeNextState = HandshakeState::WAIT_FOR_PUBLIC_FROM_SERVER;
             break;
+        }
+        case HandshakeState::WAIT_FOR_PUBLIC_FROM_SERVER:
+        {
+            /**
+             * @brief Need to optimize and reconstruct the code for further maintain
+             * @brief Need timeout to handle error
+             */
+            unsigned long startTime = millis(); 
+            const unsigned long timeout = 5000; 
+            while (!mqtt->m_mqttIsMessageArrived)
+            {
+                mqtt->connect();
+            }
+
+            if (mqtt->m_mqttIsMessageArrived) {
+                mqtt->m_mqttIsMessageArrived = false; // Reset flag
+                m_handshakeNextState = HandshakeState::HANDSHAKE_COMPLETE;
+                PLAT_LOG_D(__FMT_STR__, "Public key received, proceeding to HANDSHAKE_COMPLETE");
+            }
         }
     }
 }

@@ -2,7 +2,7 @@
 #include "setupConfiguration/utils.hpp"
 #include "MQTT.hpp"
 
-MQTT::MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword)
+MQTT::MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword, char *mqttPublicKeyReceiveTopic)
     : m_mqttServer(mqttServer),
       m_mqttPort(mqttPort),
       m_mqttDeviceID(mqttDeviceID),
@@ -10,7 +10,8 @@ MQTT::MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTop
       m_mqttPublicKeyTopic(mqttPublicKeyTopic),
       m_client(m_espClient) ,
       m_mqttUser(mqttUser),
-      m_mqttPassword(mqttPassword)
+      m_mqttPassword(mqttPassword),
+      m_mqttPublicKeyReceiveTopic(mqttPublicKeyReceiveTopic)
 {
     
 }
@@ -49,6 +50,15 @@ void MQTT::setMqttClient()
 void MQTT::callBack(char *topic, byte *payload, unsigned int length)
 {
     // handle message arrived
+    m_mqttCallBackDataReceive.assign(payload, payload + length);
+    std::string hexStr;
+    for (unsigned int i = 0; i < length; i++) {
+        char hex[4];
+        snprintf(hex, sizeof(hex), "%02X ", payload[i]); // Format as hex
+        hexStr += hex;
+    }
+    PLAT_LOG_D("Message arrived [%s]", hexStr.c_str());
+    m_mqttIsMessageArrived = true;
 }
 void MQTT::connect()
 {
@@ -70,7 +80,7 @@ void MQTT::reconnect()
         if(m_client.connect("ESP32Client", m_mqttUser, m_mqttPassword))
         {
             PLAT_LOG_D("%s", "MQTT Connected");
-            m_client.subscribe(m_mqttPublicKeyTopic);
+            m_client.subscribe(m_mqttPublicKeyReceiveTopic);
         }
         else
         {
@@ -91,8 +101,9 @@ bool MQTT::publishData(const void *data, size_t dataLength)
     return m_client.publish(m_mqttPublicKeyTopic, (const uint8_t *)data, dataLength);
 }
 
-std::shared_ptr<MQTT> MQTT::create(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword)
+std::shared_ptr<MQTT> MQTT::create(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword, char *mqttPublicKeyReceiveTopic)
 {
-    return std::make_shared<MQTT>(mqttServer, mqttPort, mqttDeviceID, mqttDataTopic, mqttPublicKeyTopic, mqttUser, mqttPassword);
+    return std::make_shared<MQTT>(mqttServer, mqttPort, mqttDeviceID, mqttDataTopic, mqttPublicKeyTopic, mqttUser, mqttPassword, mqttPublicKeyReceiveTopic);
 }
+
 
