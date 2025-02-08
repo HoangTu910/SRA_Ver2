@@ -60,57 +60,46 @@ void Transmissions::startTransmissionProcess()
                 memcpy(m_data, frameBuffer.data(), frameBuffer.size()); 
                 m_dataLength = m_uart->getFrameBuffer().size();
                 m_transmissionNextState = TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE;
-                PLAT_LOG_D(__FMT_STR__, "STEP 1 - FRAME PARSING COMPLETE");
+                PLAT_LOG_D(__FMT_STR__, "[1/5] Frame parsing completed");
             }
             else{
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
-                PLAT_LOG_D(__FMT_STR__, "STEP 1 - OH FUK FRAME NOT GUD");
+                PLAT_LOG_D(__FMT_STR__, "[1/5] - OH FUKK -_-?");
             }
             m_uart->resetFrameBuffer();
             break;
         }
-        case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:
-            while(m_server->getHandshakeState() != HandshakeState::HANDSHAKE_COMPLETE)
-            {
-                m_server->performHandshake(m_mqtt);
+        case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:{
+            if(m_server->currentSequenceNumber() == ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER){
+                PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
+                while(m_server->getHandshakeState() != HandshakeState::HANDSHAKE_COMPLETE)
+                {
+                    m_server->performHandshake(m_mqtt);
+                }
+                m_server->resetHandshakeState();
             }
-            m_server->resetHandshakeState();
-            PLAT_LOG_D(__FMT_STR__, "STEP 2 - HANDSHAKE AND KEY EXCHANGE COMPLETED");
-            // if(interval == match)
-            // {
-            //     processHandshake(); //perform key exchange - acquire new key for encryption
-            //     PLAT_LOG_D(__FMT_STR__, "STEP 2 - HANDSHAKE AND KEY EXCHANGE COMPLETED");
-            //     m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
-            // }
-            // else{
-            //     PLAT_LOG_D(__FMT_STR__, "STEP 2 - HANDSHAKE AND KEY EXCHANGE SKIPPED");
-            //     m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
-            // }
+            else PLAT_LOG_D(__FMT_STR__, "-- Key Verified!");
+            PLAT_LOG_D(__FMT_STR__, "[2/5] Handshake for key exchanging completed");
             m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
             break;
+        }
         case TransmissionState::PROCESS_ENCRYPTION:{\
             m_ascon128a->setPlainText(m_data, m_dataLength);
-            unsigned char fixedKey[ASCON_KEY_SIZE] = {
-                0x01, 0x02, 0x03, 0x04,
-                0x05, 0x06, 0x07, 0x08,
-                0x09, 0x0A, 0x0B, 0x0C,
-                0x0D, 0x0E, 0x0F, 0x10
-            };
-            for(int i = 0; i < m_dataLength; i++)
-            {
-                PLAT_LOG_D("Data[%d]: %d", i, m_data[i]);
-            }
-            m_ascon128a->setKey(fixedKey); // will be replaced with key from handshake
+            m_ascon128a->setKey(ECDH::deviceSecretKey); 
             m_ascon128a->encrypt();
             m_ascon128a->decrypt(); //Decrypt here just for verifying if the data is correct
             m_transmissionNextState = TransmissionState::SEND_DATA_TO_SERVER;
-            PLAT_LOG_D(__FMT_STR__, "STEP 3 - ENCRYPTION COMPLETE");
+            PLAT_LOG_D(__FMT_STR__, "[3/5] Encryption (Ascon-128a) completed");
             break;
         }
         case TransmissionState::SEND_DATA_TO_SERVER:
             // Send the data to server
-            // sendDataToServer(); // will be implemented later
-            PLAT_LOG_D(__FMT_STR__, "STEP 4 - SENDING DATA TO SERVER COMPLETE");
+            m_server->sendDataFrameToServer(m_mqtt, 
+                                            m_ascon128a->getNonce(),
+                                            m_ascon128a->getCipherTextLenght(),
+                                            m_ascon128a->getCipherText());
+            
+            PLAT_LOG_D(__FMT_STR__, "[4/5] Send data to server completed");
             m_transmissionNextState = TransmissionState::TRANSMISSION_COMPLETE;
             break;
         case TransmissionState::TRANSMISSION_ERROR:
@@ -118,7 +107,7 @@ void Transmissions::startTransmissionProcess()
             handleTransmissionError();
             break;
         case TransmissionState::TRANSMISSION_COMPLETE:
-            PLAT_LOG_D(__FMT_STR__, "Transmission complete");
+            PLAT_LOG_D(__FMT_STR__, "[5/5] Transmission completed!");
             resetTransmissionState();
             break;
     }

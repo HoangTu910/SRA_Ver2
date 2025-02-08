@@ -60,3 +60,14 @@ void PLAT_PRINT_BYTES(const char* text, const uint8_t* b, uint64_t len) {
     snprintf(buffer + offset, sizeof(buffer) - offset, "}");
     PLAT_LOG_D("%s", buffer);
 }
+
+// void Utils::assignPublicKeyFromString(const std::string &m_mqttCallBackDataReceive)
+// {
+//     size_t copySize = std::min(m_mqttCallBackDataReceive.size(), static_cast<size_t>(ECC_PUB_KEY_SIZE));
+//     std::memcpy(serverPublicKey, m_mqttCallBackDataReceive.data(), copySize);
+    
+//     // Zero out the rest if needed
+//     if (copySize < ECC_PUB_KEY_SIZE) {
+//         std::memset(serverPublicKey + copySize, 0, ECC_PUB_KEY_SIZE - copySize);
+//     }
+// }

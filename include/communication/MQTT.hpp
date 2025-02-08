@@ -6,6 +6,7 @@
 #include <memory>
 #include "setupConfiguration/utils.hpp"
 #include "communication/CommunicationNumberHelper.hpp"
+#include "ellipticCurve/ecdh.hpp"
 
 class MQTT
 {
@@ -22,7 +23,7 @@ private:
     PubSubClient m_client;
 public:
     //constructor
-    std::string m_mqttCallBackDataReceive;
+    uint8_t m_mqttCallBackDataReceive[ECC_PUB_KEY_SIZE];
     bool m_mqttIsMessageArrived = false;
     MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword, char *mqttPublicKeyReceiveTopic);
     ~MQTT();

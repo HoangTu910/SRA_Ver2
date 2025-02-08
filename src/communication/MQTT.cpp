@@ -49,15 +49,14 @@ void MQTT::setMqttClient()
 
 void MQTT::callBack(char *topic, byte *payload, unsigned int length)
 {
-    // handle message arrived
-    m_mqttCallBackDataReceive.assign(payload, payload + length);
     std::string hexStr;
     for (unsigned int i = 0; i < length; i++) {
         char hex[4];
-        snprintf(hex, sizeof(hex), "%02X ", payload[i]); // Format as hex
+        m_mqttCallBackDataReceive[i] = payload[i];
+        snprintf(hex, sizeof(hex), "%02X ", m_mqttCallBackDataReceive[i]); // Format as hex
         hexStr += hex;
     }
-    PLAT_LOG_D("Message arrived [%s]", hexStr.c_str());
+    // PLAT_LOG_D("Message arrived [%s]", hexStr.c_str());
     m_mqttIsMessageArrived = true;
 }
 void MQTT::connect()
@@ -84,7 +83,7 @@ void MQTT::reconnect()
         }
         else
         {
-            PLAT_LOG_D("%s", "MQTT Failed");
+            PLAT_LOG_D("%s", "MQTT Failed! Have you started the MQTT service yet?");
             delay(MQTTHelper::MQTT_TIMEOUT);
         }
     }

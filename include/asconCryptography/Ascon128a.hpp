@@ -73,6 +73,11 @@ public:
     unsigned char *decrypt();
 
     /**
+     * @brief get ciphertext lenght
+     */
+    unsigned long long getCipherTextLenght();
+
+    /**
      * @brief Smart pointer to create Ascon128a object
      * @return A shared pointer to a new Ascon128a object
      */

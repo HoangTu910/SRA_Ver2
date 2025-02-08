@@ -57,6 +57,10 @@ unsigned char *Cryptography::Ascon128a::decrypt()
     return decryptText;
 }
 
+unsigned long long Cryptography::Ascon128a::getCipherTextLenght()
+{
+    return m_cipherTextLength;
+}
 std::shared_ptr<Cryptography::Ascon128a> Cryptography::Ascon128a::create()
 {
     return std::make_shared<Cryptography::Ascon128a>();

@@ -3,6 +3,7 @@
 Transmission::ServerFrame::ServerFrame::ServerFrame()
 {
     m_handshakeFrame = std::make_shared<Handshake::HandshakeFrameData>();
+    m_serverDataFrame = std::make_shared<DataFrame::ServerFrameData>();
     resetHandshakeState();
 }
 
@@ -34,7 +35,7 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
             assert(ECDH::ecdh_generate_keys(ECDH::devicePublicKey, ECDH::devicePrivateKey) == 1);
             PLAT_PRINT_BYTES("Public key generated", ECDH::devicePublicKey, ECC_PUB_KEY_SIZE);
             PLAT_PRINT_BYTES("Private key generated", ECDH::devicePrivateKey, ECC_PUB_KEY_SIZE);
-            PLAT_LOG_D(__FMT_STR__, "[HANDSHAKE STATE] - GENERATE PUBLIC KEY");
+            PLAT_LOG_D(__FMT_STR__, "-- Generated public key");
             m_handshakeNextState = HandshakeState::CONSTRUCT_PUBLIC_KEY_FRAME;
             break;
         }
@@ -46,14 +47,14 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
             m_handshakeFrame->s_sequenceNumber = SERVER_FRAME_SEQUENCE_NUMBER;
             memcpy(m_handshakeFrame->s_authTag, SERVER_FRAME_AUTH_TAG, sizeof(m_handshakeFrame->s_authTag));
             memcpy(m_handshakeFrame->s_publicKey, ECDH::devicePublicKey, ECC_PUB_KEY_SIZE);
-            PLAT_LOG_D(__FMT_STR__, "[HANDSHAKE STATE] - CONSTRUCT PUBLIC KEY FRAME");
+            PLAT_LOG_D(__FMT_STR__, "-- Contructed public key frame");
             m_handshakeNextState = HandshakeState::SEND_PUBLIC_KEY_FRAME;
             break;
         }
         case HandshakeState::SEND_PUBLIC_KEY_FRAME:
         {
             mqtt->publishData(m_handshakeFrame.get(), sizeof(Handshake::HandshakeFrameData));
-            PLAT_LOG_D(__FMT_STR__, "[HANDSHAKE STATE] - SEND PUBLIC KEY FRAME");
+            PLAT_LOG_D(__FMT_STR__, "-- Sent public key frame to server");
             m_handshakeNextState = HandshakeState::WAIT_FOR_PUBLIC_FROM_SERVER;
             break;
         }
@@ -72,9 +73,17 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
 
             if (mqtt->m_mqttIsMessageArrived) {
                 mqtt->m_mqttIsMessageArrived = false; // Reset flag
-                m_handshakeNextState = HandshakeState::HANDSHAKE_COMPLETE;
-                PLAT_LOG_D(__FMT_STR__, "Public key received, proceeding to HANDSHAKE_COMPLETE");
+                m_handshakeNextState = HandshakeState::COMPUTE_SHARED_SECRET;
+                PLAT_LOG_D(__FMT_STR__, "-- Received public key from server");
             }
+            break;
+        }
+        case HandshakeState::COMPUTE_SHARED_SECRET:
+        {
+            assert(ECDH::ecdh_shared_secret(ECDH::devicePrivateKey, mqtt->m_mqttCallBackDataReceive, ECDH::deviceSecretKey));
+            PLAT_LOG_D(__FMT_STR__, "-- Handshake completed");
+            m_handshakeNextState = HandshakeState::HANDSHAKE_COMPLETE;
+            break;
         }
     }
 }
@@ -87,4 +96,44 @@ void Transmission::ServerFrame::ServerFrame::resetHandshakeState()
 HandshakeState Transmission::ServerFrame::ServerFrame::getHandshakeState()
 {
     return m_handshakeNextState;
+}
+
+void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(unsigned char* nonce, 
+                                                                      unsigned long long cipherTextLength,
+                                                                      unsigned char *cipherText)
+{
+    m_serverDataFrame->s_preamble = SERVER_FRAME_PREAMBLE;
+    m_serverDataFrame->s_identifierId = SERVER_FRAME_IDENTIFIER_ID;
+    m_serverDataFrame->s_packetType = SERVER_FRAME_PACKET_DATA_TYPE;
+    currentSequenceNumber();
+    m_serverDataFrame->s_timestamp = 0;// = getTimeStamp;
+    memcpy(m_serverDataFrame->s_nonce, nonce, NONCE_SIZE);
+    m_serverDataFrame->s_payloadLength = cipherTextLength;
+    memcpy(m_serverDataFrame->s_encryptedPayload, cipherText, cipherTextLength);
+    memcpy(m_serverDataFrame->s_authTag, SERVER_FRAME_AUTH_TAG, AUTH_TAG_SIZE);
+    PLAT_LOG_D(__FMT_STR__, "-- Contructed data server frame");
+}
+
+int Transmission::ServerFrame::ServerFrame::currentSequenceNumber()
+{
+    if(m_serverDataFrame->s_sequenceNumber > ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER) 
+    {
+        m_serverDataFrame->s_sequenceNumber = ServerFrameConstants::RESET_SEQUENCE;
+        return m_serverDataFrame->s_sequenceNumber;
+    }
+    return m_serverDataFrame->s_sequenceNumber++;
+}
+
+void Transmission::ServerFrame::ServerFrame::sendDataFrameToServer(std::shared_ptr<MQTT> mqtt,
+                                                                   unsigned char* nonce,
+                                                                   unsigned long long ciphertextLenght,
+                                                                   unsigned char* ciphertext)
+{
+    constructServerDataFrame(nonce, ciphertextLenght, ciphertext);
+    mqtt->publishData(m_serverDataFrame.get(), sizeof(DataFrame::ServerFrameData));
+}
+
+uint16_t Transmission::ServerFrame::ServerFrame::getSequenceNumber()
+{
+    return m_serverDataFrame->s_sequenceNumber;
 }
