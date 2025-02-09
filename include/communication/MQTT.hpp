@@ -7,6 +7,7 @@
 #include "setupConfiguration/utils.hpp"
 #include "communication/CommunicationNumberHelper.hpp"
 #include "ellipticCurve/ecdh.hpp"
+#include "frameProtocol/FrameNumberHelper.hpp"
 
 class MQTT
 {
@@ -25,6 +26,8 @@ public:
     //constructor
     uint8_t m_mqttCallBackDataReceive[ECC_PUB_KEY_SIZE];
     bool m_mqttIsMessageArrived = false;
+    bool m_mqttIsAckPackageArrived = false;
+    bool m_mqttIsTimeout = false;
     MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword, char *mqttPublicKeyReceiveTopic);
     ~MQTT();
 

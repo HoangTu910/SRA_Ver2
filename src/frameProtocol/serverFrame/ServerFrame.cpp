@@ -34,7 +34,7 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
             }
             assert(ECDH::ecdh_generate_keys(ECDH::devicePublicKey, ECDH::devicePrivateKey) == 1);
             PLAT_PRINT_BYTES("Public key generated", ECDH::devicePublicKey, ECC_PUB_KEY_SIZE);
-            PLAT_PRINT_BYTES("Private key generated", ECDH::devicePrivateKey, ECC_PUB_KEY_SIZE);
+            PLAT_PRINT_BYTES("Private key generated", ECDH::devicePrivateKey, ECC_PRV_KEY_SIZE);
             PLAT_LOG_D(__FMT_STR__, "-- Generated public key");
             m_handshakeNextState = HandshakeState::CONSTRUCT_PUBLIC_KEY_FRAME;
             break;
@@ -136,4 +136,25 @@ void Transmission::ServerFrame::ServerFrame::sendDataFrameToServer(std::shared_p
 uint16_t Transmission::ServerFrame::ServerFrame::getSequenceNumber()
 {
     return m_serverDataFrame->s_sequenceNumber;
+}
+
+bool Transmission::ServerFrame::ServerFrame::isAckFromServerArrived(std::shared_ptr<MQTT> mqtt)
+{
+    auto startTime = std::chrono::steady_clock::now();
+    constexpr auto timeout = std::chrono::seconds(Timer::TIMEOUT_FOR_COMMUNICATION);
+    while(!mqtt->m_mqttIsAckPackageArrived)
+    {
+        mqtt->connect();
+        if (std::chrono::steady_clock::now() - startTime >= timeout)
+        {
+            mqtt->m_mqttIsTimeout = true;
+            return false; 
+        }
+    }
+    if(mqtt->m_mqttIsAckPackageArrived){
+        mqtt->m_mqttIsTimeout = false;
+        mqtt->m_mqttIsAckPackageArrived = false;
+        return true;
+    }
+    return false;
 }

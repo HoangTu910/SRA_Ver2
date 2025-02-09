@@ -247,7 +247,7 @@ void UartFrame::beginUartCommunication()
 bool UartFrame::update()
 {
     PLAT_ASSERT_NULL(m_uart, __FMT_STR__, "UART instance is null");
-    PLAT_LOG_D(__FMT_STR__, "[==FRAME STATE==] Updating parser.");
+    PLAT_LOG_D(__FMT_STR__, "[ Process starting... ]");
     while (m_uart->available())
     {
         uint8_t byte = m_uart->read();

@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <memory>
+#include <chrono>
 #include <assert.h>
 #include <vector>
 #include "CRC16.hpp"
@@ -117,6 +118,11 @@ public:
      * @brief return sequence number
      */
     uint16_t getSequenceNumber();
+
+    /**
+     * @brief Wait for ACK package
+     */
+    bool isAckFromServerArrived(std::shared_ptr<MQTT> mqtt);
 };
 }
 } // namespace Communication::UartFrame

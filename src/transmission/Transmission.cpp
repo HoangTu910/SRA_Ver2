@@ -64,13 +64,13 @@ void Transmissions::startTransmissionProcess()
             }
             else{
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
-                PLAT_LOG_D(__FMT_STR__, "[1/5] - OH FUKK -_-?");
+                PLAT_LOG_D(__FMT_STR__, "[1/5] - OH FUKK what did you send? -_-");
             }
             m_uart->resetFrameBuffer();
             break;
         }
         case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:{
-            if(m_server->currentSequenceNumber() == ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER){
+            if(m_server->getSequenceNumber() == ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER){
                 PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
                 while(m_server->getHandshakeState() != HandshakeState::HANDSHAKE_COMPLETE)
                 {
@@ -100,14 +100,30 @@ void Transmissions::startTransmissionProcess()
                                             m_ascon128a->getCipherText());
             
             PLAT_LOG_D(__FMT_STR__, "[4/5] Send data to server completed");
-            m_transmissionNextState = TransmissionState::TRANSMISSION_COMPLETE;
+            m_transmissionNextState = TransmissionState::WAIT_FOR_ACK_PACKAGE;
             break;
+        case TransmissionState::WAIT_FOR_ACK_PACKAGE:
+        {
+            if(m_server->isAckFromServerArrived(m_mqtt)){
+                m_transmissionNextState = TransmissionState::TRANSMISSION_COMPLETE;
+                PLAT_LOG_D(__FMT_STR__, "[5/5] Received ACK package from server");
+            }
+            else if(m_mqtt->m_mqttIsTimeout){
+                m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
+                PLAT_LOG_D(__FMT_STR__, "[5/5] OH FUKK where is ACK? -_-");
+            }
+            else{
+                m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
+                PLAT_LOG_D(__FMT_STR__, "[5/5] OH FUKK what did you send? -_-");
+            }
+            break;
+        }
         case TransmissionState::TRANSMISSION_ERROR:
-            PLAT_LOG_D(__FMT_STR__, "Transmission error");
+            PLAT_LOG_D(__FMT_STR__, "[DAMN] Transmission error");
             handleTransmissionError();
             break;
         case TransmissionState::TRANSMISSION_COMPLETE:
-            PLAT_LOG_D(__FMT_STR__, "[5/5] Transmission completed!");
+            PLAT_LOG_D(__FMT_STR__, "[NICE] Transmission completed!");
             resetTransmissionState();
             break;
     }

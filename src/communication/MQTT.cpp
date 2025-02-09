@@ -56,8 +56,13 @@ void MQTT::callBack(char *topic, byte *payload, unsigned int length)
         snprintf(hex, sizeof(hex), "%02X ", m_mqttCallBackDataReceive[i]); // Format as hex
         hexStr += hex;
     }
+    if(length == 1 && payload[0] == ServerFrameConstants::SERVER_FRAME_PACKET_ACK_TYPE){
+        m_mqttIsAckPackageArrived = true;
+    }
+    else{
+        m_mqttIsMessageArrived = true;
+    }
     // PLAT_LOG_D("Message arrived [%s]", hexStr.c_str());
-    m_mqttIsMessageArrived = true;
 }
 void MQTT::connect()
 {
