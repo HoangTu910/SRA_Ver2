@@ -5,7 +5,6 @@ Cryptography::Ascon128a::Ascon128a()
     m_nonce = new unsigned char[ASCON_NONCE_SIZE];
     m_associatedData = reinterpret_cast<const unsigned char*>(ASCON_ASSOCIATED_DATA);;
     m_associatedDataLength = AsconMagicNumber::ASCON_ASSOCIATED_DATALENGTH;
-    Ascon::generate_nonce(m_nonce);
 }
 
 Cryptography::Ascon128a::~Ascon128a()

@@ -80,7 +80,8 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
         }
         case HandshakeState::COMPUTE_SHARED_SECRET:
         {
-            assert(ECDH::ecdh_shared_secret(ECDH::devicePrivateKey, mqtt->m_mqttCallBackDataReceive, ECDH::deviceSecretKey));
+            assert(ECDH::ecdh_shared_secret(ECDH::devicePrivateKey, mqtt->m_mqttCallBackDataReceive, m_secretKeyComputed));
+            printbytes("Secret key generated", m_secretKeyComputed, ECC_PUB_KEY_SIZE);
             PLAT_LOG_D(__FMT_STR__, "-- Handshake completed");
             m_handshakeNextState = HandshakeState::HANDSHAKE_COMPLETE;
             break;
@@ -157,4 +158,8 @@ bool Transmission::ServerFrame::ServerFrame::isAckFromServerArrived(std::shared_
         return true;
     }
     return false;
+}
+
+unsigned char* Transmission::ServerFrame::ServerFrame::getSecretKeyComputed(void) {
+    return m_secretKeyComputed;
 }

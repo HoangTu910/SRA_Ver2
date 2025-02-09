@@ -84,8 +84,9 @@ void Transmissions::startTransmissionProcess()
             break;
         }
         case TransmissionState::PROCESS_ENCRYPTION:{\
+            m_ascon128a->setNonce();
             m_ascon128a->setPlainText(m_data, m_dataLength);
-            m_ascon128a->setKey(ECDH::deviceSecretKey); 
+            m_ascon128a->setKey(m_server->getSecretKeyComputed()); 
             m_ascon128a->encrypt();
             m_ascon128a->decrypt(); //Decrypt here just for verifying if the data is correct
             m_transmissionNextState = TransmissionState::SEND_DATA_TO_SERVER;

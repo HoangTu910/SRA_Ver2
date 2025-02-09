@@ -9,6 +9,7 @@
 #include "platform/platform.hpp"
 #include "ellipticCurve/ecdh.hpp"
 #include "communication/MQTT.hpp"
+#include "asconEncryptionHelper/asconPrintstate.hpp"
 
 #define UART_FRAME_MAX_DATA_SIZE 255
 #define NUMBER_BYTE_OF_DATA 4
@@ -62,6 +63,7 @@ private:
     uint32_t m_lastByteTimestamp;
     bool m_isParsingActive = false;
     int sequenceNumber = 100;
+    unsigned char m_secretKeyComputed[ECC_PUB_KEY_SIZE];
 public:
     /**
      * @brief Constructor of UartFrame
@@ -123,6 +125,12 @@ public:
      * @brief Wait for ACK package
      */
     bool isAckFromServerArrived(std::shared_ptr<MQTT> mqtt);
+
+
+    /**
+     * Get secret key
+     */
+    unsigned char* getSecretKeyComputed(void);
 };
 }
 } // namespace Communication::UartFrame

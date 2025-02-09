@@ -128,7 +128,6 @@ int ecdh_generate_keys(uint8_t* public_key, uint8_t* private_key);
 int ecdh_shared_secret(const uint8_t* private_key, const uint8_t* others_pub, uint8_t* output);
 static uint8_t devicePublicKey[ECC_PUB_KEY_SIZE];
 static uint8_t devicePrivateKey[ECC_PRV_KEY_SIZE];
-static uint8_t deviceSecretKey[ECC_PUB_KEY_SIZE];
 } // namespace ECDH
 
 /******************************************************************************/
