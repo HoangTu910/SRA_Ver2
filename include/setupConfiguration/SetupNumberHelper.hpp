@@ -1,7 +1,7 @@
 #ifndef SETUP_NUMBER_HELPER_HPP
 #define SETUP_NUMBER_HELPER_HPP
 
-#define __AIOT_FOR_MEDTECH_DESLAB__ delay(5000)
+#define __AIOT_FOR_MEDTECH_DESLAB__ delay(2500)
 
 enum Serial
 {

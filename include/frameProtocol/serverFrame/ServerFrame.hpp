@@ -23,7 +23,7 @@ namespace ServerFrame
 {
 namespace Handshake
 {
-typedef struct __attribute__((packed))
+typedef struct IGNORE_PADDING
 {
     uint16_t s_preamble; // Sync bytes (e.g., 0xAA55)
     uint32_t s_identifierId; // Unique device/sensor ID
@@ -36,7 +36,7 @@ typedef struct __attribute__((packed))
 
 namespace DataFrame
 {
-typedef struct __attribute__((packed))
+typedef struct IGNORE_PADDING
 {
     uint16_t s_preamble;           // Sync bytes (e.g., 0xAA55)
     uint32_t s_identifierId;       // Unique device/sensor ID

@@ -7,6 +7,8 @@
 #define ENCRYPTED_PAYLOAD_SIZE 256
 #define NONCE_SIZE 16
 
+#define IGNORE_PADDING __attribute__((packed))
+
 enum UartFrameConstants
 {
     UART_FRAME_HEADER_1 = 0xAB,
@@ -48,7 +50,7 @@ enum ServerFrameConstants
     SERVER_FRAME_PACKET_HANDSHAKE_TYPE = 0x03,
     SERVER_FRAME_PACKET_DATA_TYPE = 0x01,
     SERVER_FRAME_PACKET_ACK_TYPE = 0x02,
-    SERVER_FRAME_SEQUENCE_NUMBER = 0,
+    SERVER_FRAME_SEQUENCE_NUMBER = 9,
     RESET_SEQUENCE = 0
 };
 
