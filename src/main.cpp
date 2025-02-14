@@ -21,7 +21,11 @@ void setup() {
 
 void loop() {
     controller->loopMqtt();
+    auto startTime = std::chrono::high_resolution_clock::now();
     controller->startTransmissionProcess();
+    auto endTime = std::chrono::high_resolution_clock::now();
+    double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+    PLAT_LOG_D("Total time %.2f ms", elapsedTime);
     __AIOT_FOR_MEDTECH_DESLAB__;
 }
 

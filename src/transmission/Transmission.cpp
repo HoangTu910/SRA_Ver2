@@ -71,15 +71,21 @@ void Transmissions::startTransmissionProcess()
         }
         case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:{
             if(m_server->getSequenceNumber() == ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER){
+                auto startTime = std::chrono::high_resolution_clock::now();
                 PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
                 while(m_server->getHandshakeState() != HandshakeState::HANDSHAKE_COMPLETE)
                 {
                     m_server->performHandshake(m_mqtt);
                 }
+                auto endTime = std::chrono::high_resolution_clock::now();
+                double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                PLAT_LOG_D("[2/5] Handshake for key exchanging completed in %.2f ms", elapsedTime);
                 m_server->resetHandshakeState();
             }
-            else PLAT_LOG_D(__FMT_STR__, "-- Key Verified!");
-            PLAT_LOG_D(__FMT_STR__, "[2/5] Handshake for key exchanging completed");
+            else {
+                PLAT_LOG_D(__FMT_STR__, "[2/5] Key Verified!");
+            }
+            
             m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
             break;
         }

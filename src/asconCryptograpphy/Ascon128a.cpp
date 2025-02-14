@@ -40,7 +40,7 @@ void Cryptography::Ascon128a::setNonce()
 
 void Cryptography::Ascon128a::setNonce(unsigned char *nonce)
 {
-    m_nonce = nonce;
+    m_nonce = nonce; 
 }
 
 void Cryptography::Ascon128a::encrypt()
