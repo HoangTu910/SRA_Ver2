@@ -4,6 +4,7 @@
 /********** TEST ZONE *************/
 
 #include <Arduino.h>
+#include <esp32-hal-cpu.h>
 #include "setupConfiguration/utils.hpp"
 #include "setupConfiguration/SetupNumberHelper.hpp"
 #include "communication/Wifi.hpp"
@@ -15,6 +16,7 @@ auto ascon128a = Cryptography::Ascon128a::create();
 auto controller = Transmissions::create();
 
 void setup() {
+    setCpuFrequencyMhz(240);
     Serial.begin(Serial::BAUD_RATE);
     wifi->connect();
 }
@@ -25,7 +27,7 @@ void loop() {
     controller->startTransmissionProcess();
     auto endTime = std::chrono::high_resolution_clock::now();
     double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-    PLAT_LOG_D("Total time %.2f ms", elapsedTime);
+    // PLAT_LOG_D("Total time %.2f ms", elapsedTime);
     __AIOT_FOR_MEDTECH_DESLAB__;
 }
 

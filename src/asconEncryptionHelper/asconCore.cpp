@@ -52,9 +52,9 @@ void ascon_duplex(ascon_state_t* s, unsigned char* out, const unsigned char* in,
       s->w[1] = tmp[1];
 #endif
     }
-    if (mode == ASCON_AD) printstate("absorb adata", s);
-    if (mode == ASCON_ENC) printstate("absorb plaintext", s);
-    if (mode == ASCON_DEC) printstate("insert ciphertext", s);
+    // if (mode == ASCON_AD) printstate("absorb adata", s);
+    // if (mode == ASCON_ENC) printstate("absorb plaintext", s);
+    // if (mode == ASCON_DEC) printstate("insert ciphertext", s);
 
     P(s, PB_START_ROUND);
 
@@ -95,9 +95,9 @@ void ascon_duplex(ascon_state_t* s, unsigned char* out, const unsigned char* in,
     s->w[1] = tmp[1];
 #endif
   }
-  if (mode == ASCON_AD) printstate("pad adata", s);
-  if (mode == ASCON_ENC) printstate("pad plaintext", s);
-  if (mode == ASCON_DEC) printstate("pad ciphertext", s);
+  // if (mode == ASCON_AD) printstate("pad adata", s);
+  // if (mode == ASCON_ENC) printstate("pad plaintext", s);
+  // if (mode == ASCON_DEC) printstate("pad ciphertext", s);
 }
 
 void ascon_core(ascon_state_t* s, unsigned char* out, const unsigned char* in,
@@ -172,7 +172,7 @@ void ascon_core(ascon_state_t* s, unsigned char* out, const unsigned char* in,
   s->w[3].l = N0.l;
   s->w[4].h = N1.h;
   s->w[4].l = N1.l;
-  printstate("init 1st key xor", s);
+  // printstate("init 1st key xor", s);
   P(s, PA_START_ROUND);
 #if CRYPTO_KEYBYTES == 20
 #if (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
@@ -190,7 +190,7 @@ void ascon_core(ascon_state_t* s, unsigned char* out, const unsigned char* in,
   s->w[4].h ^= K1.h;
   s->w[4].l ^= K1.l;
 #endif
-  printstate("init 2nd key xor", s);
+  // printstate("init 2nd key xor", s);
 
   // process associated data
   if (adlen) {
@@ -198,7 +198,7 @@ void ascon_core(ascon_state_t* s, unsigned char* out, const unsigned char* in,
     P(s, PB_START_ROUND);
   }
   s->x[4] ^= 0x8000000000000000;
-  printstate("domain separation", s);
+  // printstate("domain separation", s);
 
   // process plaintext/ciphertext
   ascon_duplex(s, out, in, tlen, mode);
@@ -229,7 +229,7 @@ void ascon_core(ascon_state_t* s, unsigned char* out, const unsigned char* in,
   s->w[3].h ^= K1.h;
   s->w[3].l ^= K1.l;
 #endif
-  printstate("final 1st key xor", s);
+  // printstate("final 1st key xor", s);
   P(s, PA_START_ROUND);
 #if CRYPTO_KEYBYTES == 20
   s->w[3].h ^= K1.h;
@@ -244,5 +244,5 @@ void ascon_core(ascon_state_t* s, unsigned char* out, const unsigned char* in,
 #endif
   s->x[3] = U64LE(s->x[3]);
   s->x[4] = U64LE(s->x[4]);
-  printstate("final 2nd key xor", s);
+  // printstate("final 2nd key xor", s);
 }
