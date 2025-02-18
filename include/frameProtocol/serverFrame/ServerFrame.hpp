@@ -30,7 +30,7 @@ typedef struct IGNORE_PADDING
     uint8_t s_packetType; // 0x02 (Handshake)
     uint16_t s_sequenceNumber; // Monotonic counter for deduplication
     uint8_t s_publicKey[ECC_PUB_KEY_SIZE]; //Public key for encryption (32 bytes)
-    uint8_t s_authTag[AUTH_TAG_SIZE]; // Integrity/authentication tag
+    uint16_t s_endMarker; // Integrity/authentication tag
 } HandshakeFrameData;
 }
 
@@ -48,6 +48,7 @@ typedef struct IGNORE_PADDING
     //Fix me, the allocation declaration not safe, redefine some variables
     uint8_t s_encryptedPayload[NUMBER_BYTE_OF_DATA + AUTH_TAG_SIZE]; // Encrypted data (Ascon-128)
     uint8_t s_authTag[AUTH_TAG_SIZE];         // Integrity/authentication tag
+    uint16_t s_endMarker;
 } ServerFrameData;
 }
 

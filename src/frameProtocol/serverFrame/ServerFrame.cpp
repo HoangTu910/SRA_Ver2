@@ -45,7 +45,7 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
             m_handshakeFrame->s_identifierId = SERVER_FRAME_IDENTIFIER_ID;
             m_handshakeFrame->s_packetType = SERVER_FRAME_PACKET_HANDSHAKE_TYPE;
             m_handshakeFrame->s_sequenceNumber = SERVER_FRAME_SEQUENCE_NUMBER;
-            memcpy(m_handshakeFrame->s_authTag, SERVER_FRAME_AUTH_TAG, sizeof(m_handshakeFrame->s_authTag));
+            m_handshakeFrame->s_endMarker = SERVER_FRAME_END_MAKER;
             memcpy(m_handshakeFrame->s_publicKey, ECDH::devicePublicKey, ECC_PUB_KEY_SIZE);
             PLAT_LOG_D(__FMT_STR__, "-- Contructed public key frame");
             m_handshakeNextState = HandshakeState::SEND_PUBLIC_KEY_FRAME;
@@ -111,7 +111,8 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(unsigned c
     memcpy(m_serverDataFrame->s_nonce, nonce, NONCE_SIZE);
     m_serverDataFrame->s_payloadLength = cipherTextLength;
     memcpy(m_serverDataFrame->s_encryptedPayload, cipherText, cipherTextLength);
-    memcpy(m_serverDataFrame->s_authTag, SERVER_FRAME_AUTH_TAG, AUTH_TAG_SIZE);
+    memcpy(m_serverDataFrame->s_authTag, cipherText + (cipherTextLength - AUTH_TAG_SIZE), AUTH_TAG_SIZE);
+    m_serverDataFrame->s_endMarker = SERVER_FRAME_END_MAKER;
     PLAT_LOG_D(__FMT_STR__, "-- Contructed data server frame");
 }
 
