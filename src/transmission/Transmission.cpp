@@ -41,7 +41,7 @@ void Transmissions::resetTransmissionState()
     m_dataLength = 0;
 }
 
-void Transmissions::startTransmissionProcess()
+bool Transmissions::startTransmissionProcess()
 {
     PLAT_ASSERT_NULL(m_uart, __FMT_STR__, "uartFrame is uninitilized");
     PLAT_ASSERT_NULL(m_ascon128a, __FMT_STR__, "ascon128a is uninitilized");
@@ -63,18 +63,18 @@ void Transmissions::startTransmissionProcess()
                 m_transmissionNextState = TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE;
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-                PLAT_LOG_D("[1/5] Frame parsing completed in %.2f ms", elapsedTime);
+                // PLAT_LOG_D("[1/5] Frame parsing completed in %.2f ms", elapsedTime);
             }
             else{
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
-                PLAT_LOG_D(__FMT_STR__, "[1/5] - OH FUKK what did you send? -_-");
+                // PLAT_LOG_D(__FMT_STR__, "[1/5] - OH FUKK what did you send? -_-");
             }
             m_uart->resetFrameBuffer();
             break;
         }
         case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:{
             if(m_server->getSequenceNumber() == ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER){
-                PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
+                // PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
                 auto startTime = std::chrono::high_resolution_clock::now();
                 while(m_server->getHandshakeState() != HandshakeState::HANDSHAKE_COMPLETE)
                 {
@@ -82,14 +82,14 @@ void Transmissions::startTransmissionProcess()
                 }
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-                PLAT_LOG_D("[2/5] Handshake for key exchanging completed in %.2f ms", elapsedTime);
+                // PLAT_LOG_D("[2/5] Handshake for key exchanging completed in %.2f ms", elapsedTime);
                 m_server->resetHandshakeState();
             }
             else {
                 auto startTime = std::chrono::high_resolution_clock::now();
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-                PLAT_LOG_D("[2/5] Key Verified! Completed in %.2f ms", elapsedTime);
+                // PLAT_LOG_D("[2/5] Key Verified! Completed in %.2f ms", elapsedTime);
             }
             
             m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
@@ -102,7 +102,7 @@ void Transmissions::startTransmissionProcess()
             m_ascon128a->encrypt();
             m_ascon128a->decrypt(); //Decrypt here just for verifying if the data is correct
             m_transmissionNextState = TransmissionState::SEND_DATA_TO_SERVER;
-            PLAT_LOG_D(__FMT_STR__, "[3/5] Encryption (Ascon-128a) completed");
+            // PLAT_LOG_D(__FMT_STR__, "[3/5] Encryption (Ascon-128a) completed");
             break;
         }
         case TransmissionState::SEND_DATA_TO_SERVER:
@@ -116,7 +116,7 @@ void Transmissions::startTransmissionProcess()
             
             auto endTime = std::chrono::high_resolution_clock::now();
             double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-            PLAT_LOG_D("[4/5] Send data to server completed in %.2f ms", elapsedTime);
+            // PLAT_LOG_D("[4/5] Send data to server completed in %.2f ms", elapsedTime);
             m_transmissionNextState = TransmissionState::WAIT_FOR_ACK_PACKAGE;
             break;
         }
@@ -127,35 +127,38 @@ void Transmissions::startTransmissionProcess()
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_transmissionNextState = TransmissionState::TRANSMISSION_COMPLETE;
-                PLAT_LOG_D("[5/5] Received ACK package from server in %.2f ms", elapsedTime);
+                // PLAT_LOG_D("[5/5] Received ACK package from server in %.2f ms", elapsedTime);
             }
             else if(m_mqtt->m_mqttIsTimeout){
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
-                PLAT_LOG_D("[5/5] OH FUKK where is ACK? -_- (Timeout after %.2f ms)", elapsedTime);
+                // PLAT_LOG_D("[5/5] OH FUKK where is ACK? -_- (Timeout after %.2f ms)", elapsedTime);
             }
             else{
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
-                PLAT_LOG_D("[5/5] OH FUKK what did you send? -_- (Failed after %.2f ms)", elapsedTime);
+                // PLAT_LOG_D("[5/5] OH FUKK what did you send? -_- (Failed after %.2f ms)", elapsedTime);
             }
             break;
         }
         case TransmissionState::TRANSMISSION_ERROR:
         {
-            PLAT_LOG_D(__FMT_STR__, "[DAMN] Transmission error");
+            // PLAT_LOG_D(__FMT_STR__, "[DAMN] Transmission error");
             handleTransmissionError();
+            return false;
             break;
         }
         case TransmissionState::TRANSMISSION_COMPLETE:
         {
-            PLAT_LOG_D(__FMT_STR__, "[NICE] Transmission completed!");
+            // PLAT_LOG_D(__FMT_STR__, "[NICE] Transmission completed!");
             resetTransmissionState();
+            return true;
             break;
         }
     }
+    return false;
 }
 
 void Transmissions::loopMqtt()

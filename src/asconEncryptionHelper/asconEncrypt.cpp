@@ -45,9 +45,11 @@ namespace Ascon
     //   printbytes("ciphertext", ciphertext, message_len);
     //   printbytes("tag", ciphertext + message_len, CRYPTO_ABYTES);
     //   print("\n");
-    printbytes("Ciphertext", ciphertext, message_len);
-    printbytes("Tag", ciphertext + message_len, CRYPTO_ABYTES);
-    PLAT_LOG_D("-- Ascon completed in %.2f ms", elapsed_time);
+
+    //currently comment
+    // printbytes("Ciphertext", ciphertext, message_len);
+    // printbytes("Tag", ciphertext + message_len, CRYPTO_ABYTES);
+    // PLAT_LOG_D("-- Ascon completed in %.2f ms", elapsed_time);
     return 0;
   }
 } // namespace Ascon

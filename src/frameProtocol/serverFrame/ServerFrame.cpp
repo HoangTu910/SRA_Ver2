@@ -33,9 +33,9 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
                 ECDH::devicePrivateKey[i] = prng_next();
             }
             assert(ECDH::ecdh_generate_keys(ECDH::devicePublicKey, ECDH::devicePrivateKey) == 1);
-            PLAT_PRINT_BYTES("Public key generated", ECDH::devicePublicKey, ECC_PUB_KEY_SIZE);
-            PLAT_PRINT_BYTES("Private key generated", ECDH::devicePrivateKey, ECC_PRV_KEY_SIZE);
-            PLAT_LOG_D(__FMT_STR__, "-- Generated public key");
+            // PLAT_PRINT_BYTES("Public key generated", ECDH::devicePublicKey, ECC_PUB_KEY_SIZE);
+            // PLAT_PRINT_BYTES("Private key generated", ECDH::devicePrivateKey, ECC_PRV_KEY_SIZE);
+            // PLAT_LOG_D(__FMT_STR__, "-- Generated public key");
             m_handshakeNextState = HandshakeState::CONSTRUCT_PUBLIC_KEY_FRAME;
             break;
         }
@@ -47,14 +47,14 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
             m_handshakeFrame->s_sequenceNumber = SERVER_FRAME_SEQUENCE_NUMBER;
             m_handshakeFrame->s_endMarker = SERVER_FRAME_END_MAKER;
             memcpy(m_handshakeFrame->s_publicKey, ECDH::devicePublicKey, ECC_PUB_KEY_SIZE);
-            PLAT_LOG_D(__FMT_STR__, "-- Contructed public key frame");
+            // PLAT_LOG_D(__FMT_STR__, "-- Contructed public key frame");
             m_handshakeNextState = HandshakeState::SEND_PUBLIC_KEY_FRAME;
             break;
         }
         case HandshakeState::SEND_PUBLIC_KEY_FRAME:
         {
             mqtt->publishData(m_handshakeFrame.get(), sizeof(Handshake::HandshakeFrameData));
-            PLAT_LOG_D(__FMT_STR__, "-- Sent public key frame to server");
+            // PLAT_LOG_D(__FMT_STR__, "-- Sent public key frame to server");
             m_handshakeNextState = HandshakeState::WAIT_FOR_PUBLIC_FROM_SERVER;
             break;
         }
@@ -74,15 +74,15 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
             if (mqtt->m_mqttIsMessageArrived) {
                 mqtt->m_mqttIsMessageArrived = false; // Reset flag
                 m_handshakeNextState = HandshakeState::COMPUTE_SHARED_SECRET;
-                PLAT_LOG_D(__FMT_STR__, "-- Received public key from server");
+                // PLAT_LOG_D(__FMT_STR__, "-- Received public key from server");
             }
             break;
         }
         case HandshakeState::COMPUTE_SHARED_SECRET:
         {
             assert(ECDH::ecdh_shared_secret(ECDH::devicePrivateKey, mqtt->m_mqttCallBackDataReceive, m_secretKeyComputed));
-            printbytes("Secret key generated", m_secretKeyComputed, ECC_PUB_KEY_SIZE);
-            PLAT_LOG_D(__FMT_STR__, "-- Handshake completed");
+            // printbytes("Secret key generated", m_secretKeyComputed, ECC_PUB_KEY_SIZE);
+            // PLAT_LOG_D(__FMT_STR__, "-- Handshake completed");
             m_handshakeNextState = HandshakeState::HANDSHAKE_COMPLETE;
             break;
         }
@@ -113,7 +113,7 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(unsigned c
     memcpy(m_serverDataFrame->s_encryptedPayload, cipherText, cipherTextLength);
     memcpy(m_serverDataFrame->s_authTag, cipherText + (cipherTextLength - AUTH_TAG_SIZE), AUTH_TAG_SIZE);
     m_serverDataFrame->s_endMarker = SERVER_FRAME_END_MAKER;
-    PLAT_LOG_D(__FMT_STR__, "-- Contructed data server frame");
+    // PLAT_LOG_D(__FMT_STR__, "-- Contructed data server frame");
 }
 
 int Transmission::ServerFrame::ServerFrame::currentSequenceNumber()

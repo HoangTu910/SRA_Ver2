@@ -31,9 +31,10 @@ int crypto_aead_decrypt(unsigned char* m, unsigned long long* mlen,
   for (i = 0; i < CRYPTO_ABYTES; ++i) result |= c[*mlen + i] ^ *(s.b[3] + i);
   result = (((result - 1) >> 8) & 1) - 1;
 
+  //currently comment
   // printbytes("m", m, *mlen);
-  printbytes("Decrypted", m, *mlen);
-  printbytes("Tag", c + *mlen, CRYPTO_ABYTES);
+  // printbytes("Decrypted", m, *mlen);
+  // printbytes("Tag", c + *mlen, CRYPTO_ABYTES);
   // print("\n");
   return result;
 }
