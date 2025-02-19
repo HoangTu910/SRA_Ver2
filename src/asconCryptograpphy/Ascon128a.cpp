@@ -2,64 +2,91 @@
 
 Cryptography::Ascon128a::Ascon128a()
 {
-    m_nonce = new unsigned char[ASCON_NONCE_SIZE];
-    m_associatedData = reinterpret_cast<const unsigned char*>(ASCON_ASSOCIATED_DATA);;
-    m_associatedDataLength = AsconMagicNumber::ASCON_ASSOCIATED_DATALENGTH;
+    m_nonce.resize(ASCON_NONCE_SIZE);
+    m_associatedData = std::vector<unsigned char>(ASCON_ASSOCIATED_DATA, ASCON_ASSOCIATED_DATA + AsconMagicNumber::ASCON_ASSOCIATED_DATALENGTH);
 }
 
 Cryptography::Ascon128a::~Ascon128a()
 {
-    delete[] m_nonce;
+    // No need for manual deletion with vectors
 }
 
-unsigned char *Cryptography::Ascon128a::getCipherText()
+std::vector<unsigned char> Cryptography::Ascon128a::getCipherText()
 {
     return m_cipherText;
 }
 
-unsigned char *Cryptography::Ascon128a::getNonce()
+std::vector<unsigned char> Cryptography::Ascon128a::getNonce()
 {
     return m_nonce;
 }
 
-void Cryptography::Ascon128a::setPlainText(unsigned char *plainText, unsigned long long plainTextLength)
+void Cryptography::Ascon128a::setPlainText(const std::vector<unsigned char>& plainText)
 {
     m_plainText = plainText;
-    m_plainTextLength = plainTextLength;
 }
 
-void Cryptography::Ascon128a::setKey(unsigned char *key)
+void Cryptography::Ascon128a::setKey(const std::vector<unsigned char>& key)
 {
     m_key = key;
 }
 
 void Cryptography::Ascon128a::setNonce()
 {
-    Ascon::generate_nonce(m_nonce);
+    m_nonce.resize(ASCON_NONCE_SIZE);
+    Ascon::generate_nonce(m_nonce.data());
 }
 
-void Cryptography::Ascon128a::setNonce(unsigned char *nonce)
+void Cryptography::Ascon128a::setNonce(const std::vector<unsigned char>& nonce)
 {
-    m_nonce = nonce; 
+    m_nonce = nonce;
 }
 
 void Cryptography::Ascon128a::encrypt()
 {
-    m_cipherText = new unsigned char[m_plainTextLength + ASCON_TAG_SIZE];
-    Ascon::crypto_aead_encrypt(m_cipherText, &m_cipherTextLength, m_plainText, m_plainTextLength, m_associatedData, m_associatedDataLength, nullptr, m_nonce, m_key);
+    size_t plainTextLength = m_plainText.size();
+    m_cipherText.resize(plainTextLength + ASCON_TAG_SIZE);
+    unsigned long long cipherTextLength;
+    
+    Ascon::crypto_aead_encrypt(
+        m_cipherText.data(),
+        &cipherTextLength,
+        m_plainText.data(),
+        plainTextLength,
+        m_associatedData.data(),
+        m_associatedData.size(),
+        nullptr,
+        m_nonce.data(),
+        m_key.data()
+    );
 }
 
-unsigned char *Cryptography::Ascon128a::decrypt()
+std::vector<unsigned char> Cryptography::Ascon128a::decrypt()
 {
-    unsigned char* decryptText = new unsigned char[m_cipherTextLength - ASCON_TAG_SIZE];
-    Ascon::crypto_aead_decrypt(decryptText, &m_plainTextLength, nullptr, m_cipherText, m_cipherTextLength, m_associatedData, m_associatedDataLength, m_nonce, m_key);
+    std::vector<unsigned char> decryptText(m_cipherText.size() - ASCON_TAG_SIZE);
+    unsigned long long plainTextLength;
+    
+    Ascon::crypto_aead_decrypt(
+        decryptText.data(),
+        &plainTextLength,
+        nullptr,
+        m_cipherText.data(),
+        m_cipherText.size(),
+        m_associatedData.data(),
+        m_associatedData.size(),
+        m_nonce.data(),
+        m_key.data()
+    );
+    
+    decryptText.resize(plainTextLength);
     return decryptText;
 }
 
-unsigned long long Cryptography::Ascon128a::getCipherTextLenght()
+size_t Cryptography::Ascon128a::getCipherTextLength()
 {
-    return m_cipherTextLength;
+    return m_cipherText.size();
 }
+
 std::shared_ptr<Cryptography::Ascon128a> Cryptography::Ascon128a::create()
 {
     return std::make_shared<Cryptography::Ascon128a>();

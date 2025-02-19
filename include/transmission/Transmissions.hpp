@@ -12,10 +12,11 @@ private:
     std::shared_ptr<Transmission::ServerFrame::ServerFrame> m_server;
     std::shared_ptr<MQTT> m_mqtt;
     TransmissionState m_transmissionFinalState;
-    unsigned char *m_data;
+    std::vector<unsigned char> m_data;
     unsigned long long m_dataLength;
 public:
     TransmissionState m_transmissionNextState;
+    bool m_isFrameParsing = false;
     /**
      * @brief Constructor of Transmission
      */

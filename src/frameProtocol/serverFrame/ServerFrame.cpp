@@ -1,6 +1,6 @@
 #include "frameProtocol/serverFrame/ServerFrame.hpp"
 
-Transmission::ServerFrame::ServerFrame::ServerFrame()
+Transmission::ServerFrame::ServerFrame::ServerFrame() : m_secretKeyComputed(ECC_PUB_KEY_SIZE) 
 {
     m_handshakeFrame = std::make_shared<Handshake::HandshakeFrameData>();
     m_serverDataFrame = std::make_shared<DataFrame::ServerFrameData>();
@@ -80,7 +80,7 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
         }
         case HandshakeState::COMPUTE_SHARED_SECRET:
         {
-            assert(ECDH::ecdh_shared_secret(ECDH::devicePrivateKey, mqtt->m_mqttCallBackDataReceive, m_secretKeyComputed));
+            assert(ECDH::ecdh_shared_secret(ECDH::devicePrivateKey, mqtt->m_mqttCallBackDataReceive, m_secretKeyComputed.data()));
             // printbytes("Secret key generated", m_secretKeyComputed, ECC_PUB_KEY_SIZE);
             // PLAT_LOG_D(__FMT_STR__, "-- Handshake completed");
             m_handshakeNextState = HandshakeState::HANDSHAKE_COMPLETE;
@@ -99,21 +99,38 @@ HandshakeState Transmission::ServerFrame::ServerFrame::getHandshakeState()
     return m_handshakeNextState;
 }
 
-void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(unsigned char* nonce, 
-                                                                      unsigned long long cipherTextLength,
-                                                                      unsigned char *cipherText)
+void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(const std::vector<unsigned char>& nonce, 
+                                                                    unsigned long long cipherTextLength,
+                                                                    const std::vector<unsigned char>& cipherText)
 {
+    // Set frame header fields
     m_serverDataFrame->s_preamble = SERVER_FRAME_PREAMBLE;
-    m_serverDataFrame->s_identifierId = SERVER_FRAME_IDENTIFIER_ID;
+    m_serverDataFrame->s_identifierId = SERVER_FRAME_IDENTIFIER_ID;  
     m_serverDataFrame->s_packetType = SERVER_FRAME_PACKET_DATA_TYPE;
     currentSequenceNumber();
-    m_serverDataFrame->s_timestamp = 0;// = getTimeStamp;
-    memcpy(m_serverDataFrame->s_nonce, nonce, NONCE_SIZE);
+    m_serverDataFrame->s_timestamp = std::time(nullptr); // Current timestamp
+
+    // Copy nonce
+    if(nonce.size() >= NONCE_SIZE) {
+        std::copy(nonce.begin(), nonce.begin() + NONCE_SIZE, m_serverDataFrame->s_nonce);
+    }
+
+    // Set payload length and copy encrypted data
     m_serverDataFrame->s_payloadLength = cipherTextLength;
-    memcpy(m_serverDataFrame->s_encryptedPayload, cipherText, cipherTextLength);
-    memcpy(m_serverDataFrame->s_authTag, cipherText + (cipherTextLength - AUTH_TAG_SIZE), AUTH_TAG_SIZE);
+    if(cipherTextLength <= sizeof(m_serverDataFrame->s_encryptedPayload)) {
+        std::copy(cipherText.begin(), 
+                 cipherText.begin() + cipherTextLength,
+                 m_serverDataFrame->s_encryptedPayload);
+    }
+
+    // Copy authentication tag
+    if(cipherText.size() >= cipherTextLength && cipherTextLength >= AUTH_TAG_SIZE) {
+        std::copy(cipherText.begin() + (cipherTextLength - AUTH_TAG_SIZE),
+                 cipherText.begin() + cipherTextLength,
+                 m_serverDataFrame->s_authTag);
+    }
+
     m_serverDataFrame->s_endMarker = SERVER_FRAME_END_MAKER;
-    // PLAT_LOG_D(__FMT_STR__, "-- Contructed data server frame");
 }
 
 int Transmission::ServerFrame::ServerFrame::currentSequenceNumber()
@@ -127,11 +144,11 @@ int Transmission::ServerFrame::ServerFrame::currentSequenceNumber()
 }
 
 void Transmission::ServerFrame::ServerFrame::sendDataFrameToServer(std::shared_ptr<MQTT> mqtt,
-                                                                   unsigned char* nonce,
-                                                                   unsigned long long ciphertextLenght,
-                                                                   unsigned char* ciphertext)
+                                                                 const std::vector<unsigned char>& nonce,
+                                                                 unsigned long long ciphertextLength,
+                                                                 const std::vector<unsigned char>& ciphertext)
 {
-    constructServerDataFrame(nonce, ciphertextLenght, ciphertext);
+    constructServerDataFrame(nonce, ciphertextLength, ciphertext);
     mqtt->publishData(m_serverDataFrame.get(), sizeof(DataFrame::ServerFrameData));
 }
 
@@ -161,6 +178,7 @@ bool Transmission::ServerFrame::ServerFrame::isAckFromServerArrived(std::shared_
     return false;
 }
 
-unsigned char* Transmission::ServerFrame::ServerFrame::getSecretKeyComputed(void) {
+std::vector<unsigned char>& Transmission::ServerFrame::ServerFrame::getSecretKeyComputed()
+{
     return m_secretKeyComputed;
 }

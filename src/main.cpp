@@ -17,6 +17,8 @@ auto controller = Transmissions::create();
 
 int packetSuccess = 0;
 int packetLoss = 0;
+static double totalTime = 0;
+std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
 
 void setup() {
     setCpuFrequencyMhz(240);
@@ -25,29 +27,29 @@ void setup() {
 }
 
 void loop() {
-    static double totalTime = 0;
-    static int timeCount = 0;
-
     controller->loopMqtt();
-    auto startTime = std::chrono::high_resolution_clock::now();
-    controller->startTransmissionProcess();
-    auto endTime = std::chrono::high_resolution_clock::now();
-    if(controller->m_transmissionNextState == TransmissionState::TRANSMISSION_ERROR) 
+    if(controller->m_transmissionNextState == TransmissionState::PROCESS_FRAME_PARSING)
     {
+        startTime = std::chrono::high_resolution_clock::now();
+    }
+    controller->startTransmissionProcess();
+    if (controller->m_transmissionNextState == TransmissionState::TRANSMISSION_ERROR && controller->m_isFrameParsing == true) {
         packetLoss++;
-        PLAT_LOG_D("Success: %d - Loss: %d", packetSuccess, packetLoss);
+        controller->m_isFrameParsing = false;
+        PLAT_LOG_D("S: %d - L: %d", packetSuccess, packetLoss);
     }
-        
-    else if(controller->m_transmissionNextState == TransmissionState::TRANSMISSION_COMPLETE) {
+    else if (controller->m_transmissionNextState == TransmissionState::TRANSMISSION_COMPLETE) {
+        auto endTime = std::chrono::high_resolution_clock::now();
+        double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+        totalTime += elapsedTime;
         packetSuccess++;
-        PLAT_LOG_D("Success: %d - Loss: %d", packetSuccess, packetLoss);
+        PLAT_LOG_D("S: %d - L: %d", packetSuccess, packetLoss);
+        PLAT_LOG_D("AVG: %.2f ms", totalTime / packetSuccess);
     }
-    double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-    totalTime += elapsedTime;
-    timeCount++;
-    PLAT_LOG_D("Average Time: %.2f ms", totalTime / timeCount);
-    __AIOT_FOR_MEDTECH_DESLAB__;
+    
+    // __AIOT_FOR_MEDTECH_DESLAB__;
 }
+
 
 // Test::UartFrameTest::frameParserTest(); // Frame test passed
 // Test::Ascon128aTest::RunAscon128aTest(); // Ascon test passed

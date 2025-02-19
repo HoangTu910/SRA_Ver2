@@ -1,21 +1,28 @@
 #include "transmission/Transmissions.hpp"
 
 Transmissions::Transmissions() : 
-        m_uart(Transmission::UartFrame::UartFrame::create()),
-        m_ascon128a(Cryptography::Ascon128a::create()),
-        m_server(Transmission::ServerFrame::ServerFrame::create()),
-        m_mqtt(MQTT::create(MQTTHelper::MQTT_SERVER, 
-                            MQTTHelper::MQTT_PORT, 
-                            MQTTHelper::MQTT_DEVICE_ID, 
-                            MQTTHelper::MQTT_DATA_TOPIC, 
-                            MQTTHelper::MQTT_PUBLIC_KEY_TOPIC,
-                            MQTTHelper::MQTT_USER,
-                            MQTTHelper::MQTT_PASSWORD,
-                            MQTTHelper::MQTT_PUBLIC_KEY_RECEIVE_TOPIC)),
-        m_data(nullptr),
-        m_dataLength(0)
+    m_uart(Transmission::UartFrame::UartFrame::create()),
+    m_ascon128a(Cryptography::Ascon128a::create()),
+    m_server(Transmission::ServerFrame::ServerFrame::create()),
+    m_mqtt(MQTT::create(MQTTHelper::MQTT_SERVER, 
+                        MQTTHelper::MQTT_PORT, 
+                        MQTTHelper::MQTT_DEVICE_ID, 
+                        MQTTHelper::MQTT_DATA_TOPIC, 
+                        MQTTHelper::MQTT_PUBLIC_KEY_TOPIC,
+                        MQTTHelper::MQTT_USER,
+                        MQTTHelper::MQTT_PASSWORD,
+                        MQTTHelper::MQTT_PUBLIC_KEY_RECEIVE_TOPIC)),
+    m_dataLength(0)
 {
-    m_mqtt->setupServer();
+    // Initialize empty vector instead of nullptr
+    m_data = std::vector<unsigned char>();
+    
+    // Setup MQTT server if connection pointer is valid
+    if (m_mqtt) {
+        m_mqtt->setupServer();
+    }
+    
+    // Initialize transmission state
     resetTransmissionState();
 }
 
@@ -52,20 +59,16 @@ bool Transmissions::startTransmissionProcess()
             bool isUpdateAndParsingComplete = m_uart->update();
             if(isUpdateAndParsingComplete)
             {
-                std::vector<uint8_t> frameBuffer = m_uart->getFrameBuffer();  
-                if (m_data) {
-                    delete[] m_data; 
-                    m_data = nullptr;
-                }
-                m_data = new unsigned char[frameBuffer.size()];  
-                memcpy(m_data, frameBuffer.data(), frameBuffer.size()); 
+                m_data = m_uart->getFrameBuffer();  // Simply assign the frame buffer vector
                 m_dataLength = m_uart->getFrameBuffer().size();
                 m_transmissionNextState = TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE;
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 // PLAT_LOG_D("[1/5] Frame parsing completed in %.2f ms", elapsedTime);
+                m_isFrameParsing = true;
             }
             else{
+                m_isFrameParsing = false;
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
                 // PLAT_LOG_D(__FMT_STR__, "[1/5] - OH FUKK what did you send? -_-");
             }
@@ -74,7 +77,7 @@ bool Transmissions::startTransmissionProcess()
         }
         case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:{
             if(m_server->getSequenceNumber() == ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER){
-                // PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
+                PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
                 auto startTime = std::chrono::high_resolution_clock::now();
                 while(m_server->getHandshakeState() != HandshakeState::HANDSHAKE_COMPLETE)
                 {
@@ -97,7 +100,7 @@ bool Transmissions::startTransmissionProcess()
         }
         case TransmissionState::PROCESS_ENCRYPTION:{\
             m_ascon128a->setNonce();
-            m_ascon128a->setPlainText(m_data, m_dataLength);
+            m_ascon128a->setPlainText(m_data);
             m_ascon128a->setKey(m_server->getSecretKeyComputed()); 
             m_ascon128a->encrypt();
             m_ascon128a->decrypt(); //Decrypt here just for verifying if the data is correct
@@ -111,7 +114,7 @@ bool Transmissions::startTransmissionProcess()
             auto startTime = std::chrono::high_resolution_clock::now();
             m_server->sendDataFrameToServer(m_mqtt, 
                                             m_ascon128a->getNonce(),
-                                            m_ascon128a->getCipherTextLenght(),
+                                            m_ascon128a->getCipherTextLength(),
                                             m_ascon128a->getCipherText());
             
             auto endTime = std::chrono::high_resolution_clock::now();
