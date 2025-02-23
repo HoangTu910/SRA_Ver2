@@ -16,6 +16,11 @@ private:
     unsigned long long m_dataLength;
 public:
     TransmissionState m_transmissionNextState;
+    double m_frameProcessTime;
+    double m_handshakeProcessTime;
+    double m_encryptionProcessTime;
+    double m_sendDataProcessTime;
+    double m_ackResponseTime;
     bool m_isFrameParsing = false;
     /**
      * @brief Constructor of Transmission

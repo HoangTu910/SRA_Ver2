@@ -64,6 +64,7 @@ bool Transmissions::startTransmissionProcess()
                 m_transmissionNextState = TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE;
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                m_frameProcessTime += elapsedTime;
                 // PLAT_LOG_D("[1/5] Frame parsing completed in %.2f ms", elapsedTime);
                 m_isFrameParsing = true;
             }
@@ -77,7 +78,7 @@ bool Transmissions::startTransmissionProcess()
         }
         case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:{
             if(m_server->getSequenceNumber() == ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER){
-                PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
+                // PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
                 auto startTime = std::chrono::high_resolution_clock::now();
                 while(m_server->getHandshakeState() != HandshakeState::HANDSHAKE_COMPLETE)
                 {
@@ -86,26 +87,32 @@ bool Transmissions::startTransmissionProcess()
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 // PLAT_LOG_D("[2/5] Handshake for key exchanging completed in %.2f ms", elapsedTime);
+                m_handshakeProcessTime += elapsedTime;
                 m_server->resetHandshakeState();
             }
             else {
                 auto startTime = std::chrono::high_resolution_clock::now();
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                m_handshakeProcessTime += elapsedTime;
                 // PLAT_LOG_D("[2/5] Key Verified! Completed in %.2f ms", elapsedTime);
             }
             
             m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
             break;
         }
-        case TransmissionState::PROCESS_ENCRYPTION:{\
+        case TransmissionState::PROCESS_ENCRYPTION:{
+            auto startTime = std::chrono::high_resolution_clock::now();
             m_ascon128a->setNonce();
             m_ascon128a->setPlainText(m_data);
             m_ascon128a->setKey(m_server->getSecretKeyComputed()); 
             m_ascon128a->encrypt();
-            m_ascon128a->decrypt(); //Decrypt here just for verifying if the data is correct
+            // m_ascon128a->decrypt(); //Decrypt here just for verifying if the data is correct
+            auto endTime = std::chrono::high_resolution_clock::now();
+            double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+            m_encryptionProcessTime += elapsedTime;
+            // PLAT_LOG_D("[3/5] Encryption (Ascon-128a) completed in %.2f ms", elapsedTime);
             m_transmissionNextState = TransmissionState::SEND_DATA_TO_SERVER;
-            // PLAT_LOG_D(__FMT_STR__, "[3/5] Encryption (Ascon-128a) completed");
             break;
         }
         case TransmissionState::SEND_DATA_TO_SERVER:
@@ -119,6 +126,7 @@ bool Transmissions::startTransmissionProcess()
             
             auto endTime = std::chrono::high_resolution_clock::now();
             double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+            m_sendDataProcessTime += elapsedTime;
             // PLAT_LOG_D("[4/5] Send data to server completed in %.2f ms", elapsedTime);
             m_transmissionNextState = TransmissionState::WAIT_FOR_ACK_PACKAGE;
             break;
@@ -129,6 +137,7 @@ bool Transmissions::startTransmissionProcess()
             if(m_server->isAckFromServerArrived(m_mqtt)){
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                m_ackResponseTime += elapsedTime;
                 m_transmissionNextState = TransmissionState::TRANSMISSION_COMPLETE;
                 // PLAT_LOG_D("[5/5] Received ACK package from server in %.2f ms", elapsedTime);
             }
