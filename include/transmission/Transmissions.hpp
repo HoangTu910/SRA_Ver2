@@ -11,11 +11,17 @@ private:
     std::shared_ptr<Cryptography::Ascon128a> m_ascon128a;
     std::shared_ptr<Transmission::ServerFrame::ServerFrame> m_server;
     std::shared_ptr<MQTT> m_mqtt;
-    TransmissionState m_transmissionNextState;
     TransmissionState m_transmissionFinalState;
-    unsigned char *m_data;
+    std::vector<unsigned char> m_data;
     unsigned long long m_dataLength;
 public:
+    TransmissionState m_transmissionNextState;
+    double m_frameProcessTime;
+    double m_handshakeProcessTime;
+    double m_encryptionProcessTime;
+    double m_sendDataProcessTime;
+    double m_ackResponseTime;
+    bool m_isFrameParsing = false;
     /**
      * @brief Constructor of Transmission
      */
@@ -53,7 +59,7 @@ public:
      * @brief Encrypt the data using Ascon128a
      * @brief Send the data to server
      */
-    void startTransmissionProcess();
+    bool startTransmissionProcess();
 
     /**
      * @brief Loop the MQTT connection

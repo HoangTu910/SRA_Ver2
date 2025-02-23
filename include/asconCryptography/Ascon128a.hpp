@@ -8,20 +8,19 @@
 #include "asconEncryptionHelper/asconPrintstate.hpp"
 
 #include <memory>
+#include <vector>
 
 namespace Cryptography
 {
 class Ascon128a
 {
 protected:
-    unsigned char *m_cipherText;
-    unsigned long long m_cipherTextLength;
-    unsigned char *m_plainText;
-    unsigned long long m_plainTextLength;
-    const unsigned char *m_associatedData;
-    unsigned long long m_associatedDataLength;
-    unsigned char *m_nonce;
-    unsigned char *m_key;
+    std::vector<unsigned char> m_cipherText;
+    std::vector<unsigned char> m_plainText;
+    std::vector<unsigned char> m_associatedData;
+    std::vector<unsigned char> m_nonce;
+    std::vector<unsigned char> m_key;
+    std::vector<unsigned char> m_decryptText;
 
     std::shared_ptr<Cryptography::Ascon128a> m_ascon128a;
 public:
@@ -33,23 +32,23 @@ public:
      * @param plainText The plain text to encrypt
      * @param plainTextLength The length of the plain text
      */
-    void setPlainText(unsigned char *plainText, unsigned long long plainTextLength);
+    void setPlainText(const std::vector<unsigned char>& plainText);
 
     /**
      * @brief Get the cipher text after encryption
      * @return The cipher text
      */
-    unsigned char *getCipherText();
+    std::vector<unsigned char> getCipherText();
 
     /**
      * @brief Get nonce
      */
-    unsigned char *getNonce();
+    std::vector<unsigned char> getNonce();
 
     /**
      * @brief Set the key for encryption
      */
-    void setKey(unsigned char *key);
+    void setKey(const std::vector<unsigned char>& key);
 
     /**
      * @brief Set the nonce for encryption
@@ -60,7 +59,7 @@ public:
      * @brief Set the nonce for encryption
      * @param nonce The nonce to set
      */
-    void setNonce(unsigned char *nonce);
+    void setNonce(const std::vector<unsigned char>& nonce);
 
     /**
      * @brief Encrypt the data using Ascon128a
@@ -70,12 +69,12 @@ public:
     /**
      * @brief Decrypt the data using Ascon128a
      */
-    unsigned char *decrypt();
+    std::vector<unsigned char> decrypt();
 
     /**
-     * @brief get ciphertext lenght
+     * @brief get ciphertext length
      */
-    unsigned long long getCipherTextLenght();
+    size_t getCipherTextLength();
 
     /**
      * @brief Smart pointer to create Ascon128a object

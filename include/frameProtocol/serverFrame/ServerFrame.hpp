@@ -64,7 +64,7 @@ private:
     uint32_t m_lastByteTimestamp;
     bool m_isParsingActive = false;
     int sequenceNumber = 100;
-    unsigned char m_secretKeyComputed[ECC_PUB_KEY_SIZE];
+    std::vector<unsigned char> m_secretKeyComputed;
 public:
     /**
      * @brief Constructor of UartFrame
@@ -102,7 +102,9 @@ public:
      * @brief Construct data frame
      * @param Nonce for setting the nonce packet
      */
-    void constructServerDataFrame(unsigned char* nonce, unsigned long long cipherTextLength, unsigned char *m_cipherText);
+    void constructServerDataFrame(const std::vector<unsigned char>& nonce, 
+                                unsigned long long cipherTextLength, 
+                                const std::vector<unsigned char>& cipherText);
 
     /**
      * @brief increase sequence number for each transmission
@@ -113,9 +115,9 @@ public:
      * @brief send data frame to server using MQTT
      */
     void sendDataFrameToServer(std::shared_ptr<MQTT> mqtt,
-                                unsigned char* nonce,
-                                unsigned long long ciphertextLenght,
-                                unsigned char* ciphertext);
+                             const std::vector<unsigned char>& nonce,
+                             unsigned long long ciphertextLength,
+                             const std::vector<unsigned char>& ciphertext);
     
     /**
      * @brief return sequence number
@@ -127,11 +129,10 @@ public:
      */
     bool isAckFromServerArrived(std::shared_ptr<MQTT> mqtt);
 
-
     /**
      * Get secret key
      */
-    unsigned char* getSecretKeyComputed(void);
-};
+    std::vector<unsigned char>& getSecretKeyComputed();
+};;
 }
 } // namespace Communication::UartFrame

@@ -96,7 +96,7 @@ bool UartFrame::isFirstHeaderByteValid(uint8_t byteFrame)
     {
         return true;
     }
-    PLAT_LOG_D("[HEADER_1 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_1);
+    // PLAT_LOG_D("[HEADER_1 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_1);
     return false;
 }
 
@@ -106,7 +106,7 @@ bool UartFrame::isSecondHeaderByteValid(uint8_t byteFrame)
     {
         return true;
     }
-    PLAT_LOG_D("[HEADER_2 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_2);
+    // PLAT_LOG_D("[HEADER_2 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_2);
     return false;
 }
 
@@ -247,7 +247,7 @@ void UartFrame::beginUartCommunication()
 bool UartFrame::update()
 {
     PLAT_ASSERT_NULL(m_uart, __FMT_STR__, "UART instance is null");
-    PLAT_LOG_D(__FMT_STR__, "[ Process starting... ]");
+    // PLAT_LOG_D(__FMT_STR__, "[ Process starting... ]");
     while (m_uart->available())
     {
         uint8_t byte = m_uart->read();

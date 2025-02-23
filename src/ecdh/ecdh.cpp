@@ -734,7 +734,7 @@ namespace ECDH
 
       auto end_time = std::chrono::high_resolution_clock::now(); // End timing
       double elapsed_time = std::chrono::duration<double, std::milli>(end_time - start_time).count();
-      PLAT_LOG_D("ECDH key generation completed in %.2f ms", elapsed_time);
+      // PLAT_LOG_D("ECDH key generation completed in %.2f ms", elapsed_time);
 
       return 1;
     }
@@ -769,7 +769,7 @@ namespace ECDH
 
       auto end_time = std::chrono::high_resolution_clock::now(); // End timing
       double elapsed_time = std::chrono::duration<double, std::milli>(end_time - start_time).count();
-      PLAT_LOG_D("ECDH shared secret computation completed in %.2f ms", elapsed_time);
+      // PLAT_LOG_D("ECDH shared secret computation completed in %.2f ms", elapsed_time);
 
       return 1;
     }
