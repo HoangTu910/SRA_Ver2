@@ -34,7 +34,15 @@ void UartFrame::parseFrame(uint8_t byteFrame)
         m_parserNextState = isFirstHeaderByteValid(byteFrame) ? UartParserState::VERIFY_HEADER_2_BYTE : UartParserState::FRAME_ERROR;
         break;
     case UartParserState::VERIFY_HEADER_2_BYTE:
-        m_parserNextState = isSecondHeaderByteValid(byteFrame) ? UartParserState::WAIT_FOR_DATA_LENGTH_1_BYTE : UartParserState::FRAME_ERROR;
+        m_parserNextState = isSecondHeaderByteValid(byteFrame) ? UartParserState::RECEIVE_DEVICE_ID : UartParserState::FRAME_ERROR;
+        break;
+    case UartParserState::RECEIVE_DEVICE_ID:
+        collectDeviceID(byteFrame);
+        m_parserNextState = (m_deviceID.size() == Device::BYTE_LENGTH) ? UartParserState::RECEIVE_NONCE : UartParserState::RECEIVE_DEVICE_ID;
+        break;
+    case UartParserState::RECEIVE_NONCE:
+        collectNonce(byteFrame);
+        m_parserNextState = (m_nonceReceive.size() == NONCE_SIZE) ? UartParserState::WAIT_FOR_DATA_LENGTH_1_BYTE : UartParserState::RECEIVE_NONCE;
         break;
     case UartParserState::WAIT_FOR_DATA_LENGTH_1_BYTE:
         m_parserNextState = isDataLengthFirstByteValid(byteFrame) ? UartParserState::WAIT_FOR_DATA_LENGTH_2_BYTE : UartParserState::FRAME_ERROR;
@@ -88,13 +96,21 @@ void UartFrame::resetFrameBuffer()
 {
     m_frameBuffer.clear();
     m_frameReceiveBuffer.clear();
+    m_deviceID.clear();
+    m_nonceReceive.clear();
 }
 
 bool UartFrame::isFirstHeaderByteValid(uint8_t byteFrame)
 {
     if (byteFrame == UartFrameConstants::UART_FRAME_HEADER_1)
     {
+        PLAT_LOG_D("[HEADER_1 PASSED] %d", byteFrame);
         return true;
+    }
+    else if(byteFrame == UartFrameConstants::UART_FRAME_ERROR_ENCRYPTED)
+    {
+        PLAT_LOG_D(__FMT_STR__, "[ENCRYPTED FRAME ERROR]");
+        return false;
     }
     // PLAT_LOG_D("[HEADER_1 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_1);
     return false;
@@ -104,6 +120,7 @@ bool UartFrame::isSecondHeaderByteValid(uint8_t byteFrame)
 {
     if (byteFrame == UartFrameConstants::UART_FRAME_HEADER_2)
     {
+        PLAT_LOG_D("[HEADER_2 PASSED] %d", byteFrame);
         return true;
     }
     // PLAT_LOG_D("[HEADER_2 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_2);
@@ -114,6 +131,7 @@ bool UartFrame::isDataLengthFirstByteValid(uint8_t byteFrame)
 {
     if (byteFrame <= UART_FRAME_MAX_DATA_SIZE)
     {
+        PLAT_LOG_D("[DATA_LENGHT_1 PASSED] %d", byteFrame);
         m_dataLength = byteFrame;
         return true;
     }
@@ -125,6 +143,7 @@ bool UartFrame::isDataLengthSecondByteValid(uint8_t byteFrame)
 {
     if (byteFrame <= UART_FRAME_MAX_DATA_SIZE)
     {
+        PLAT_LOG_D("[DATA_LENGHT_2 PASSED] %d", byteFrame);
         m_dataLength = (m_dataLength << 8) | byteFrame;
         return true;
     }
@@ -136,6 +155,7 @@ bool UartFrame::isFirstTrailerByteValid(uint8_t byteFrame)
 {
     if (byteFrame == UartFrameConstants::UART_FRAME_TRAILER_1)
     {
+        PLAT_LOG_D("[TRAILER_1 PASSED] %d", byteFrame);
         return true;
     }
     PLAT_LOG_D("[TRAILER_1 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_TRAILER_1);
@@ -146,6 +166,7 @@ bool UartFrame::isSecondTrailerByteValid(uint8_t byteFrame)
 {
     if (byteFrame == UartFrameConstants::UART_FRAME_TRAILER_2)
     {
+        PLAT_LOG_D("[TRAILER_2 PASSED] %d", byteFrame);
         return true;
     }
     PLAT_LOG_D("[TRAILER_2 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_TRAILER_2);
@@ -156,6 +177,7 @@ bool UartFrame::isCrcFirstByteValid(uint8_t byteFrame)
 {
     if (byteFrame <= BYTE_MAX)
     {
+        PLAT_LOG_D("[BYTE PASSED] %d", byteFrame);
         m_crcReceive = byteFrame;
         return true;
     }
@@ -167,6 +189,7 @@ bool UartFrame::isCrcSecondByteValid(uint8_t byteFrame)
 {
     if (byteFrame <= BYTE_MAX)
     {
+        PLAT_LOG_D("[BYTE PASSED] %d", byteFrame);
         m_crcReceive = (m_crcReceive << 8) | byteFrame;
         return true;
     }
@@ -188,13 +211,46 @@ void UartFrame::collectData(uint8_t byteFrame)
 {
     if (m_frameBuffer.size() < UART_FRAME_MAX_DATA_SIZE)
     {
+        PLAT_LOG_D("[DATA] %d", byteFrame);
         m_frameBuffer.push_back(byteFrame);
     }
     else
     {
         PLAT_ASSERT((m_frameBuffer.size() < UART_FRAME_MAX_DATA_SIZE),
-                    "[BUFFER OVERFLOW] Max data size reached: %d",
+                    "[BUFFER OVERFLOW for Data] Max data size reached: %d",
                     UART_FRAME_MAX_DATA_SIZE);
+        m_parserNextState = UartParserState::FRAME_ERROR;
+    }
+}
+
+void UartFrame::collectDeviceID(uint8_t byteFrame)
+{
+    if(m_deviceID.size() < Device::BYTE_LENGTH)
+    {
+        PLAT_LOG_D("[ID] %d", byteFrame);
+        m_deviceID.push_back(byteFrame);
+    }
+    else
+    {
+        PLAT_ASSERT((m_deviceID.size() < Device::BYTE_LENGTH),
+                    "[BUFFER OVERFLOW for ID] Max data size reached: %d",
+                    Device::BYTE_LENGTH);
+        m_parserNextState = UartParserState::FRAME_ERROR;
+    }
+}
+
+void UartFrame::collectNonce(uint8_t byteFrame)
+{
+    if(m_nonceReceive.size() < NONCE_SIZE)
+    {
+        PLAT_LOG_D("[NONCE] %d", byteFrame);
+        m_nonceReceive.push_back(byteFrame);
+    }
+    else
+    {
+        PLAT_ASSERT((m_nonceReceive.size() < NONCE_SIZE),
+                    "[BUFFER OVERFLOW for NONCE] Max data size reached: %d",
+                    NONCE_SIZE);
         m_parserNextState = UartParserState::FRAME_ERROR;
     }
 }

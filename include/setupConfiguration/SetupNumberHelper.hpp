@@ -1,7 +1,7 @@
 #ifndef SETUP_NUMBER_HELPER_HPP
 #define SETUP_NUMBER_HELPER_HPP
 
-#define __AIOT_FOR_MEDTECH_DESLAB__ delay(90)
+#define __AIOT_FOR_MEDTECH_DESLAB__ delay(2500)
 
 enum Serial
 {
@@ -24,7 +24,8 @@ enum TransmissionState
 
 enum Device
 {
-    Identifier = 0x01
+    Identifier = 0x01,
+    BYTE_LENGTH = 4
 };
 
 #endif // SETUP_NUMBER_HELPER_HPP

@@ -38,6 +38,8 @@ private:
     uint16_t m_dataLength;
     uint16_t m_crcReceive;
     std::vector<uint8_t> m_frameBuffer;
+    std::vector<uint8_t> m_deviceID;
+    std::vector<uint8_t> m_nonceReceive;
     std::vector<uint8_t> m_frameReceiveBuffer;
     UartParserState m_parserNextState;
     UartParserState m_parserFinalState;
@@ -145,6 +147,18 @@ public:
      * @param byteFrame The byte to collect
      */
     void collectData(uint8_t byteFrame);
+
+    /**
+     * @brief Collect device ID
+     * @param byteFrame The byte to collect
+     */
+    void collectDeviceID(uint8_t byteFrame);
+
+    /**
+     * @brief Collect nonce
+     * @param byteFrame The byte to collect
+     */
+    void collectNonce(uint8_t byteFrame);
 
     /**
      * @brief Smart pointer to create UartFrameData object
