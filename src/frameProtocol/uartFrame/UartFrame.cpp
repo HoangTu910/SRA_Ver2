@@ -9,19 +9,32 @@ UartFrame::UartFrame()
 {
     beginUartCommunication();
     resetStateMachine();
+    m_uartFrameSTM32 = std::make_shared<UartFrameSTM32>();
 }
 
 UartFrame::~UartFrame()
 {
 }
 
-void UartFrame::constructFrame()
-{
-    /**
-     * @brief Currently not using this function
-     * @brief The data frame will be sent by STM32 device
-     * @brief Can be used to create mock data frame for transmission testing
-     */
+bool UartFrame::UARTTransmitting(uint8_t* data, size_t size) {
+    if (!m_uart || !data || size == 0) {
+        return false;
+    }
+
+    size_t bytesWritten = m_uart->write(data, size);
+    // for(int i = 0; i < size; i++) {
+    //     PLAT_LOG_D("[UART TX %d] Data: %d", i, data[i]);
+    // }
+    m_uart->flush(); // Ensure all data is sent
+
+    // Check if all bytes were written successfully
+    if (bytesWritten != size) {
+        PLAT_LOG_D("[UART TX ERROR] Bytes written: %d, Expected: %d", bytesWritten, size);
+        return false;
+    }
+
+    PLAT_LOG_D("-- Transmitted succesfull %d bytes", bytesWritten);
+    return true;
 }
 
 void UartFrame::parseFrame(uint8_t byteFrame)
@@ -104,7 +117,7 @@ bool UartFrame::isFirstHeaderByteValid(uint8_t byteFrame)
 {
     if (byteFrame == UartFrameConstants::UART_FRAME_HEADER_1)
     {
-        PLAT_LOG_D("[HEADER_1 PASSED] %d", byteFrame);
+        // PLAT_LOG_D("[HEADER_1 PASSED] %d", byteFrame);
         return true;
     }
     else if(byteFrame == UartFrameConstants::UART_FRAME_ERROR_ENCRYPTED)
@@ -112,7 +125,17 @@ bool UartFrame::isFirstHeaderByteValid(uint8_t byteFrame)
         PLAT_LOG_D(__FMT_STR__, "[ENCRYPTED FRAME ERROR]");
         return false;
     }
-    // PLAT_LOG_D("[HEADER_1 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_1);
+    else if(byteFrame == UartFrameConstants::UART_FRAME_ERROR_UNKNOWN)
+    {
+        PLAT_LOG_D(__FMT_STR__, "[UNKNOWN FRAME ERROR]");
+        return false;
+    }
+    else if(byteFrame == UartFrameConstants::UART_FRAME_ERROR_MISMATCH)
+    {
+        PLAT_LOG_D(__FMT_STR__, "[MISMATCH FRAME ERROR]");
+        return false;
+    }
+    PLAT_LOG_D("[HEADER_1 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_1);
     return false;
 }
 
@@ -120,10 +143,10 @@ bool UartFrame::isSecondHeaderByteValid(uint8_t byteFrame)
 {
     if (byteFrame == UartFrameConstants::UART_FRAME_HEADER_2)
     {
-        PLAT_LOG_D("[HEADER_2 PASSED] %d", byteFrame);
+        // PLAT_LOG_D("[HEADER_2 PASSED] %d", byteFrame);
         return true;
     }
-    // PLAT_LOG_D("[HEADER_2 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_2);
+    PLAT_LOG_D("[HEADER_2 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_2);
     return false;
 }
 
@@ -131,7 +154,7 @@ bool UartFrame::isDataLengthFirstByteValid(uint8_t byteFrame)
 {
     if (byteFrame <= UART_FRAME_MAX_DATA_SIZE)
     {
-        PLAT_LOG_D("[DATA_LENGHT_1 PASSED] %d", byteFrame);
+        // PLAT_LOG_D("[DATA_LENGHT_1 PASSED] %d", byteFrame);
         m_dataLength = byteFrame;
         return true;
     }
@@ -143,7 +166,7 @@ bool UartFrame::isDataLengthSecondByteValid(uint8_t byteFrame)
 {
     if (byteFrame <= UART_FRAME_MAX_DATA_SIZE)
     {
-        PLAT_LOG_D("[DATA_LENGHT_2 PASSED] %d", byteFrame);
+        // PLAT_LOG_D("[DATA_LENGHT_2 PASSED] %d", byteFrame);
         m_dataLength = (m_dataLength << 8) | byteFrame;
         return true;
     }
@@ -155,7 +178,7 @@ bool UartFrame::isFirstTrailerByteValid(uint8_t byteFrame)
 {
     if (byteFrame == UartFrameConstants::UART_FRAME_TRAILER_1)
     {
-        PLAT_LOG_D("[TRAILER_1 PASSED] %d", byteFrame);
+        // PLAT_LOG_D("[TRAILER_1 PASSED] %d", byteFrame);
         return true;
     }
     PLAT_LOG_D("[TRAILER_1 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_TRAILER_1);
@@ -166,7 +189,7 @@ bool UartFrame::isSecondTrailerByteValid(uint8_t byteFrame)
 {
     if (byteFrame == UartFrameConstants::UART_FRAME_TRAILER_2)
     {
-        PLAT_LOG_D("[TRAILER_2 PASSED] %d", byteFrame);
+        // PLAT_LOG_D("[TRAILER_2 PASSED] %d", byteFrame);
         return true;
     }
     PLAT_LOG_D("[TRAILER_2 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_TRAILER_2);
@@ -177,7 +200,7 @@ bool UartFrame::isCrcFirstByteValid(uint8_t byteFrame)
 {
     if (byteFrame <= BYTE_MAX)
     {
-        PLAT_LOG_D("[BYTE PASSED] %d", byteFrame);
+        // PLAT_LOG_D("[BYTE PASSED] %d", byteFrame);
         m_crcReceive = byteFrame;
         return true;
     }
@@ -189,7 +212,7 @@ bool UartFrame::isCrcSecondByteValid(uint8_t byteFrame)
 {
     if (byteFrame <= BYTE_MAX)
     {
-        PLAT_LOG_D("[BYTE PASSED] %d", byteFrame);
+        // PLAT_LOG_D("[BYTE PASSED] %d", byteFrame);
         m_crcReceive = (m_crcReceive << 8) | byteFrame;
         return true;
     }
@@ -211,7 +234,7 @@ void UartFrame::collectData(uint8_t byteFrame)
 {
     if (m_frameBuffer.size() < UART_FRAME_MAX_DATA_SIZE)
     {
-        PLAT_LOG_D("[DATA] %d", byteFrame);
+        // PLAT_LOG_D("[DATA] %d", byteFrame);
         m_frameBuffer.push_back(byteFrame);
     }
     else
@@ -227,7 +250,7 @@ void UartFrame::collectDeviceID(uint8_t byteFrame)
 {
     if(m_deviceID.size() < Device::BYTE_LENGTH)
     {
-        PLAT_LOG_D("[ID] %d", byteFrame);
+        // PLAT_LOG_D("[ID] %d", byteFrame);
         m_deviceID.push_back(byteFrame);
     }
     else
@@ -243,7 +266,7 @@ void UartFrame::collectNonce(uint8_t byteFrame)
 {
     if(m_nonceReceive.size() < NONCE_SIZE)
     {
-        PLAT_LOG_D("[NONCE] %d", byteFrame);
+        // PLAT_LOG_D("[NONCE] %d", byteFrame);
         m_nonceReceive.push_back(byteFrame);
     }
     else
@@ -320,6 +343,34 @@ bool UartFrame::update()
 bool UartFrame::isParsingComplete()
 {
     return m_isParsingComplete;
+}
+
+void UartFrame::constructFrameForTransmittingKeySTM32(uint8_t *secretKey)
+{
+    if (!m_uartFrameSTM32 || !secretKey) {
+        PLAT_LOG_D(__FMT_STR__, "[ERROR] Null pointer in constructFrameForTransmittingKeySTM32");
+        return;
+    }
+
+    try {
+        m_uartFrameSTM32->str_packetType = UARTCommand::STM_RECEIVE_KEY;
+        std::copy(secretKey, secretKey + SECRET_KEY_SIZE, m_uartFrameSTM32->str_secretKey);
+
+        // Key logging
+        // for(int i = 0; i < SECRET_KEY_SIZE; i++) {
+        //     PLAT_LOG_D("[KEY] %d", m_uartFrameSTM32->str_secretKey[i]);
+        // }
+
+        uint16_t crc = CRC16::calculateCRC(m_uartFrameSTM32->str_secretKey, SECRET_KEY_SIZE);
+        m_uartFrameSTM32->str_crcHigh = (crc >> 8) & 0xFF;
+        // PLAT_LOG_D("[CRC1] %d", m_uartFrameSTM32->str_crcHigh);
+        m_uartFrameSTM32->str_crcLow = crc & 0xFF;
+        // PLAT_LOG_D("[CRC2] %d", m_uartFrameSTM32->str_crcLow);
+        PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting key to STM32");
+    }
+    catch (const std::exception& e) {
+        PLAT_LOG_D("[ERROR] Exception in constructFrameForTransmittingKeySTM32: %s", e.what());
+    }
 }
 
 void UartFrame::resetStateMachine()

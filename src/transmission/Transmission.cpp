@@ -43,8 +43,8 @@ void Transmissions::handleTransmissionError()
 
 void Transmissions::resetTransmissionState()
 {
-    m_transmissionNextState = TransmissionState::PROCESS_FRAME_PARSING;
-    m_transmissionFinalState = TransmissionState::PROCESS_FRAME_PARSING;
+    m_transmissionNextState = TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE;
+    m_transmissionFinalState = TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE;
     m_dataLength = 0;
 }
 
@@ -54,31 +54,11 @@ bool Transmissions::startTransmissionProcess()
     PLAT_ASSERT_NULL(m_ascon128a, __FMT_STR__, "ascon128a is uninitilized");
     switch(m_transmissionNextState)
     {
-        case TransmissionState::PROCESS_FRAME_PARSING:{
-            auto startTime = std::chrono::high_resolution_clock::now();
-            bool isUpdateAndParsingComplete = m_uart->update();
-            if(isUpdateAndParsingComplete)
-            {
-                m_data = m_uart->getFrameBuffer();  // Simply assign the frame buffer vector
-                m_dataLength = m_uart->getFrameBuffer().size();
-                m_transmissionNextState = TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE;
-                auto endTime = std::chrono::high_resolution_clock::now();
-                double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-                m_frameProcessTime += elapsedTime;
-                PLAT_LOG_D("[1/5] Frame parsing completed in %.2f ms", elapsedTime);
-                m_isFrameParsing = true;
-            }
-            else{
-                m_isFrameParsing = false;
-                m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
-                PLAT_LOG_D(__FMT_STR__, "[1/5] - OH FUKK what did you send? -_-");
-            }
-            m_uart->resetFrameBuffer();
-            break;
-        }
         case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:{
+            PLAT_LOG_D(__FMT_STR__, "[1/5] Checking key...");
             if(m_server->getSequenceNumber() == ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER){
                 PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
+
                 auto startTime = std::chrono::high_resolution_clock::now();
                 while(m_server->getHandshakeState() != HandshakeState::HANDSHAKE_COMPLETE)
                 {
@@ -86,22 +66,59 @@ bool Transmissions::startTransmissionProcess()
                 }
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-                PLAT_LOG_D("[2/5] Handshake for key exchanging completed in %.2f ms", elapsedTime);
+                PLAT_LOG_D("-- Handshake for key exchanging completed in %.2f ms", elapsedTime);
+
+                // Construct frame for transmitting key to STM32
+                PLAT_LOG_D(__FMT_STR__, "-- Construct frame key to STM32...");
+                m_uart->constructFrameForTransmittingKeySTM32(m_server->getSecretKeyComputed().data());
+                PLAT_LOG_D(__FMT_STR__, "-- Transmitting key to STM32...");
+                m_uart->transmitData(*m_uart->getUartFrameSTM32()); // pass * to get data
+
                 m_handshakeProcessTime += elapsedTime;
+
                 m_server->resetHandshakeState();
             }
             else {
+                PLAT_LOG_D(__FMT_STR__, "-- Key is still valid");
                 auto startTime = std::chrono::high_resolution_clock::now();
                 auto endTime = std::chrono::high_resolution_clock::now();
+
+                PLAT_LOG_D(__FMT_STR__, "-- Transmiting trigger signal to STM32");
+                uint8_t TRIGGER_SIGNAL[TOTAL_UART_DATA_SIZE_TRANSMIT_TO_STM32] = {UARTCommand::SIGNAL};
+                m_uart->transmitData(TRIGGER_SIGNAL); // Trigger signal from FrameNumberHelper.hpp
+
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_handshakeProcessTime += elapsedTime;
-                PLAT_LOG_D("[2/5] Key Verified! Completed in %.2f ms", elapsedTime);
             }
             
-            m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
+            m_transmissionNextState = TransmissionState::PROCESS_FRAME_PARSING;
+            break;
+        }
+        case TransmissionState::PROCESS_FRAME_PARSING:{
+            PLAT_LOG_D(__FMT_STR__, "[2/5] Parsing frame...");
+            auto startTime = std::chrono::high_resolution_clock::now();
+            bool isUpdateAndParsingComplete = m_uart->update();
+            if(isUpdateAndParsingComplete)
+            {
+                m_data = m_uart->getFrameBuffer();  // Simply assign the frame buffer vector
+                m_dataLength = m_uart->getFrameBuffer().size();
+                m_transmissionNextState = TransmissionState::PROCESS_ENCRYPTION;
+                auto endTime = std::chrono::high_resolution_clock::now();
+                double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                m_frameProcessTime += elapsedTime;
+                PLAT_LOG_D("-- Frame parsing completed in %.2f ms", elapsedTime);
+                m_isFrameParsing = true;
+            }
+            else{
+                m_isFrameParsing = false;
+                m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
+                PLAT_LOG_D(__FMT_STR__, "-- OH FUKK what did you send? -_-");
+            }
+            m_uart->resetFrameBuffer();
             break;
         }
         case TransmissionState::PROCESS_ENCRYPTION:{
+            PLAT_LOG_D(__FMT_STR__, "[3/5] Encrypting data...");
             auto startTime = std::chrono::high_resolution_clock::now();
             m_ascon128a->setNonce();
             m_ascon128a->setPlainText(m_data);
@@ -111,13 +128,14 @@ bool Transmissions::startTransmissionProcess()
             auto endTime = std::chrono::high_resolution_clock::now();
             double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
             m_encryptionProcessTime += elapsedTime;
-            PLAT_LOG_D("[3/5] Encryption (Ascon-128a) completed in %.2f ms", elapsedTime);
+            PLAT_LOG_D("-- Encryption (Ascon-128a) completed in %.2f ms", elapsedTime);
             m_transmissionNextState = TransmissionState::SEND_DATA_TO_SERVER;
             break;
         }
         case TransmissionState::SEND_DATA_TO_SERVER:
         {
             // Send the data to server
+            PLAT_LOG_D(__FMT_STR__, "[4/5] Sending data to server...");
             auto startTime = std::chrono::high_resolution_clock::now();
             m_server->sendDataFrameToServer(m_mqtt, 
                                             m_ascon128a->getNonce(),
@@ -127,31 +145,32 @@ bool Transmissions::startTransmissionProcess()
             auto endTime = std::chrono::high_resolution_clock::now();
             double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
             m_sendDataProcessTime += elapsedTime;
-            PLAT_LOG_D("[4/5] Send data to server completed in %.2f ms", elapsedTime);
+            PLAT_LOG_D("-- Send data to server completed in %.2f ms", elapsedTime);
             m_transmissionNextState = TransmissionState::WAIT_FOR_ACK_PACKAGE;
             break;
         }
         case TransmissionState::WAIT_FOR_ACK_PACKAGE:
         {
+            PLAT_LOG_D(__FMT_STR__, "[5/5] Waiting for ACK package...");
             auto startTime = std::chrono::high_resolution_clock::now();
             if(m_server->isAckFromServerArrived(m_mqtt)){
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_ackResponseTime += elapsedTime;
                 m_transmissionNextState = TransmissionState::TRANSMISSION_COMPLETE;
-                PLAT_LOG_D("[5/5] Received ACK package from server in %.2f ms", elapsedTime);
+                PLAT_LOG_D("-- Received ACK package from server in %.2f ms", elapsedTime);
             }
             else if(m_mqtt->m_mqttIsTimeout){
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
-                PLAT_LOG_D("[5/5] OH FUKK where is ACK? -_- (Timeout after %.2f ms)", elapsedTime);
+                PLAT_LOG_D("-- OH FUKK where is ACK? -_- (Timeout after %.2f ms)", elapsedTime);
             }
             else{
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
-                PLAT_LOG_D("[5/5] OH FUKK what did you send? -_- (Failed after %.2f ms)", elapsedTime);
+                PLAT_LOG_D("-- OH FUKK what did you send? -_- (Failed after %.2f ms)", elapsedTime);
             }
             break;
         }

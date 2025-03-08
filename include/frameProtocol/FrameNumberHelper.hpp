@@ -7,6 +7,7 @@
 #define ENCRYPTED_PAYLOAD_SIZE 256
 #define NONCE_SIZE 16
 #define NEVER_KEY_EXCHANGE 1000
+#define TOTAL_UART_DATA_SIZE_TRANSMIT_TO_STM32 51
 
 #define IGNORE_PADDING __attribute__((packed))
 
@@ -16,7 +17,9 @@ enum UartFrameConstants
     UART_FRAME_HEADER_2 = 0xCD,
     UART_FRAME_TRAILER_1 = 0xE1,
     UART_FRAME_TRAILER_2 = 0xE2,
-    UART_FRAME_ERROR_ENCRYPTED = 0x00,
+    UART_FRAME_ERROR_ENCRYPTED = 0x01,
+    UART_FRAME_ERROR_UNKNOWN = 0xFF,
+    UART_FRAME_ERROR_MISMATCH = 0xFA
 };
 
 enum Dummy
@@ -27,6 +30,12 @@ enum Dummy
 enum UartTimer
 {
     UART_FRAME_TIMEOUT_MS = 100
+};
+
+enum UARTCommand
+{
+    STM_RECEIVE_KEY = 0x02,
+    SIGNAL = 0x01
 };
 
 enum UartParserState

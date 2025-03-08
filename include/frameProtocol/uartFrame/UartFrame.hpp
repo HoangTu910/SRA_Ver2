@@ -9,6 +9,7 @@
 #include "setupConfiguration/SetupNumberHelper.hpp"
 
 #define UART_FRAME_MAX_DATA_SIZE 255
+#define SECRET_KEY_SIZE 48
 #pragma once
 
 /**
@@ -31,10 +32,27 @@ typedef struct UartFrameData
     uint8_t str_crcLow;
 } UartFrameData;
 
+typedef struct IGNORE_PADDING UartFrameSTM32
+{
+    uint8_t str_packetType;
+    uint8_t str_secretKey[SECRET_KEY_SIZE];
+    uint8_t str_crcHigh;
+    uint8_t str_crcLow;
+} UartFrameSTM32;
+
 class UartFrame
 {
 private:
+    /**
+     * @brief Transmit data over UART
+     * @param data Pointer to the data buffer to transmit
+     * @param size Size of the data to transmit
+     * @return true if transmission successful, false otherwise
+     */
+    bool UARTTransmitting(uint8_t* data, size_t size);
+    
     std::shared_ptr<UartFrameData> m_uartFrame;
+    std::shared_ptr<UartFrameSTM32> m_uartFrameSTM32;
     uint16_t m_dataLength;
     uint16_t m_crcReceive;
     std::vector<uint8_t> m_frameBuffer;
@@ -149,6 +167,7 @@ public:
     void collectData(uint8_t byteFrame);
 
     /**
+
      * @brief Collect device ID
      * @param byteFrame The byte to collect
      */
@@ -213,6 +232,40 @@ public:
      * @return True if parsing complete, false otherwise
      */
     bool isParsingComplete();
+
+    /**
+     * @brief Construct frame for tranmistting key to STM32
+     * @param secretKey The secret key to transmit
+     */
+    void constructFrameForTransmittingKeySTM32(uint8_t *secretKey);
+
+    /**
+     * @brief Template function for transmitting data using UART
+     * @tparam T Type of the struct containing data
+     * @param data Reference to the struct containing data to transmit
+     * @return true if transmission successful, false otherwise
+     */
+    template<typename T>
+    bool transmitData(const T& data) {
+        if (!m_uart) {
+            return false;
+        }
+        
+        const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(&data);
+        size_t dataSize = sizeof(T);
+        
+        return UARTTransmitting(const_cast<uint8_t*>(dataPtr), dataSize);
+    }
+
+    void logUartData();
+
+    /**
+     * @brief Get the UartFrameSTM32 object
+     * @return The UartFrameSTM32 object
+     */
+    std::shared_ptr<UartFrameSTM32> getUartFrameSTM32() {
+        return m_uartFrameSTM32;
+    }
 };
 }
 } // namespace Communication::UartFrame
