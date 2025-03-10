@@ -10,6 +10,7 @@
 
 #define UART_FRAME_MAX_DATA_SIZE 255
 #define SECRET_KEY_SIZE 48
+#define IDENTIFIER_ID_SIZE 4
 #pragma once
 
 /**
@@ -35,6 +36,7 @@ typedef struct UartFrameData
 typedef struct IGNORE_PADDING UartFrameSTM32
 {
     uint8_t str_packetType;
+    uint8_t str_identifierId[IDENTIFIER_ID_SIZE];
     uint8_t str_secretKey[SECRET_KEY_SIZE];
     uint8_t str_crcHigh;
     uint8_t str_crcLow;
@@ -266,6 +268,18 @@ public:
     std::shared_ptr<UartFrameSTM32> getUartFrameSTM32() {
         return m_uartFrameSTM32;
     }
+    
+    /**
+     * @brief Get nonce receive
+     * @return The nonce receive
+     */
+    std::vector<uint8_t> getNonce();
+
+    /**
+     * @brief Get the frame buffer size
+     * @return The frame buffer size
+     */
+    int getFrameBufferSize();
 };
 }
 } // namespace Communication::UartFrame

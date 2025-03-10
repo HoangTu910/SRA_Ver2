@@ -11,6 +11,12 @@ namespace WifiHelper
 
     char *SSID = (char*)"Hoang Tuan";
     char *PASSWORD = (char*)"03081973";
+
+    // char *SSID = (char*)"FETEL@DESLAB_SV";
+    // char *PASSWORD = (char*)"DeslabSV";
+
+    // char *SSID = (char*)"Redmi Note 11S";
+    // char *PASSWORD = (char*)"hoangtu2003";
 }
 
 namespace MQTTHelper

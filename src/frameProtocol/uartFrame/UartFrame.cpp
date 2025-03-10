@@ -135,6 +135,11 @@ bool UartFrame::isFirstHeaderByteValid(uint8_t byteFrame)
         PLAT_LOG_D(__FMT_STR__, "[MISMATCH FRAME ERROR]");
         return false;
     }
+    else if(byteFrame == UartFrameConstants::UART_FRAME_ERROR_IDENTIFIER)
+    {
+        PLAT_LOG_D(__FMT_STR__, "[IDENTIFIER FRAME ERROR]");
+        return false;
+    }
     PLAT_LOG_D("[HEADER_1 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_1);
     return false;
 }
@@ -326,7 +331,7 @@ void UartFrame::beginUartCommunication()
 bool UartFrame::update()
 {
     PLAT_ASSERT_NULL(m_uart, __FMT_STR__, "UART instance is null");
-    // PLAT_LOG_D(__FMT_STR__, "[ Process starting... ]");
+    PLAT_LOG_D(__FMT_STR__, "-- Receiving data from STM32");
     while (m_uart->available())
     {
         uint8_t byte = m_uart->read();
@@ -347,6 +352,7 @@ bool UartFrame::isParsingComplete()
 
 void UartFrame::constructFrameForTransmittingKeySTM32(uint8_t *secretKey)
 {
+    uint8_t IdentifierIDSTM[IDENTIFIER_ID_STM_SIZE] = {0x01, 0x02, 0x03, 0x04};
     if (!m_uartFrameSTM32 || !secretKey) {
         PLAT_LOG_D(__FMT_STR__, "[ERROR] Null pointer in constructFrameForTransmittingKeySTM32");
         return;
@@ -360,7 +366,7 @@ void UartFrame::constructFrameForTransmittingKeySTM32(uint8_t *secretKey)
         // for(int i = 0; i < SECRET_KEY_SIZE; i++) {
         //     PLAT_LOG_D("[KEY] %d", m_uartFrameSTM32->str_secretKey[i]);
         // }
-
+        std::copy(IdentifierIDSTM, IdentifierIDSTM + IDENTIFIER_ID_STM_SIZE, m_uartFrameSTM32->str_identifierId);
         uint16_t crc = CRC16::calculateCRC(m_uartFrameSTM32->str_secretKey, SECRET_KEY_SIZE);
         m_uartFrameSTM32->str_crcHigh = (crc >> 8) & 0xFF;
         // PLAT_LOG_D("[CRC1] %d", m_uartFrameSTM32->str_crcHigh);
@@ -373,6 +379,15 @@ void UartFrame::constructFrameForTransmittingKeySTM32(uint8_t *secretKey)
     }
 }
 
+std::vector<uint8_t> UartFrame::getNonce()
+{
+    return m_nonceReceive;
+}
+
+int UartFrame::getFrameBufferSize()
+{
+    return m_frameBuffer.size();
+}
 void UartFrame::resetStateMachine()
 {
     // resetFrameBuffer();
