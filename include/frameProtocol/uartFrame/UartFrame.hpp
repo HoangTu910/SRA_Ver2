@@ -35,12 +35,26 @@ typedef struct UartFrameData
 
 typedef struct IGNORE_PADDING UartFrameSTM32
 {
+    uint8_t str_headerHigh;
+    uint8_t str_headerLow;
     uint8_t str_packetType;
     uint8_t str_identifierId[IDENTIFIER_ID_SIZE];
     uint8_t str_secretKey[SECRET_KEY_SIZE];
+    uint8_t str_trailerHigh;
+    uint8_t str_trailerLow;
     uint8_t str_crcHigh;
     uint8_t str_crcLow;
 } UartFrameSTM32;
+
+typedef struct IGNORE_PADDING UartFrameSTM32Trigger
+{
+    uint8_t str_headerHigh;
+    uint8_t str_headerLow;
+    uint8_t str_triggerSignal;
+    uint8_t str_trailerHigh;
+    uint8_t str_trailerLow;
+    uint8_t str_padding[54];
+} UartFrameSTM32Trigger;
 
 class UartFrame
 {
@@ -55,6 +69,7 @@ private:
     
     std::shared_ptr<UartFrameData> m_uartFrame;
     std::shared_ptr<UartFrameSTM32> m_uartFrameSTM32;
+    std::shared_ptr<UartFrameSTM32Trigger> m_uartFrameSTM32Trigger;
     uint16_t m_dataLength;
     uint16_t m_crcReceive;
     std::vector<uint8_t> m_frameBuffer;
@@ -242,6 +257,11 @@ public:
     void constructFrameForTransmittingKeySTM32(uint8_t *secretKey);
 
     /**
+     * @brief Construct frame for transmitting trigger signal to STM32
+     */
+    void constructFrameForTransmittingTriggerSignal();
+
+    /**
      * @brief Template function for transmitting data using UART
      * @tparam T Type of the struct containing data
      * @param data Reference to the struct containing data to transmit
@@ -267,6 +287,14 @@ public:
      */
     std::shared_ptr<UartFrameSTM32> getUartFrameSTM32() {
         return m_uartFrameSTM32;
+    }
+
+    /**
+     * @brief Get the UartFrameSTM32Trigger object
+     * @return The UartFrameSTM32Trigger object
+     */
+    std::shared_ptr<UartFrameSTM32Trigger> getUartFrameSTM32Trigger() {
+        return m_uartFrameSTM32Trigger;
     }
     
     /**

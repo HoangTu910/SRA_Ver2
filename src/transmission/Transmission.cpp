@@ -82,10 +82,9 @@ bool Transmissions::startTransmissionProcess()
                 PLAT_LOG_D(__FMT_STR__, "-- Key is still valid");
                 auto startTime = std::chrono::high_resolution_clock::now();
                 auto endTime = std::chrono::high_resolution_clock::now();
-
+                m_uart->constructFrameForTransmittingTriggerSignal();
                 PLAT_LOG_D(__FMT_STR__, "-- Transmiting trigger signal to STM32");
-                uint8_t TRIGGER_SIGNAL[TOTAL_UART_DATA_SIZE_TRANSMIT_TO_STM32] = {UARTCommand::SIGNAL};
-                m_uart->transmitData(TRIGGER_SIGNAL); // Trigger signal from FrameNumberHelper.hpp
+                m_uart->transmitData(*m_uart->getUartFrameSTM32Trigger()); // pass * to get data
 
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_handshakeProcessTime += elapsedTime;

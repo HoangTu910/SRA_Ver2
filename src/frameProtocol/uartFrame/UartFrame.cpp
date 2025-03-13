@@ -10,6 +10,7 @@ UartFrame::UartFrame()
     beginUartCommunication();
     resetStateMachine();
     m_uartFrameSTM32 = std::make_shared<UartFrameSTM32>();
+    m_uartFrameSTM32Trigger = std::make_shared<UartFrameSTM32Trigger>();
 }
 
 UartFrame::~UartFrame()
@@ -115,33 +116,41 @@ void UartFrame::resetFrameBuffer()
 
 bool UartFrame::isFirstHeaderByteValid(uint8_t byteFrame)
 {
-    if (byteFrame == UartFrameConstants::UART_FRAME_HEADER_1)
-    {
-        // PLAT_LOG_D("[HEADER_1 PASSED] %d", byteFrame);
-        return true;
+    switch (byteFrame) {
+        case UartFrameConstants::UART_FRAME_HEADER_1:
+            // PLAT_LOG_D("[HEADER_1 PASSED] %d", byteFrame);
+            return true;
+            
+        case UartFrameConstants::UART_FRAME_ERROR_ENCRYPTED:
+            PLAT_LOG_D(__FMT_STR__, "[ENCRYPTED FRAME ERROR]");
+            return false;
+            
+        case UartFrameConstants::UART_FRAME_ERROR_UNKNOWN:
+            PLAT_LOG_D(__FMT_STR__, "[UNKNOWN FRAME ERROR]");
+            return false;
+            
+        case UartFrameConstants::UART_FRAME_ERROR_MISMATCH:
+            PLAT_LOG_D(__FMT_STR__, "[MISMATCH FRAME ERROR]");
+            return false;
+            
+        case UartFrameConstants::UART_FRAME_ERROR_IDENTIFIER:
+            PLAT_LOG_D(__FMT_STR__, "[IDENTIFIER FRAME ERROR]");
+            return false;
+
+        case UartFrameConstants::UART_FRAME_ERROR_HEADER_MISMATCH:
+            PLAT_LOG_D(__FMT_STR__, "[HEADER MISMATCH FRAME ERROR]");
+            return false;
+        
+        case UartFrameConstants::UART_FRAME_ERROR_TRAILER_MISMATCH:
+            PLAT_LOG_D(__FMT_STR__, "[TRAILER MISMATCH FRAME ERROR]");
+            return false;
+            
+        default:
+            PLAT_LOG_D("[HEADER_1 FAILED] actual: %d, expect: %d",
+                      byteFrame, 
+                      UartFrameConstants::UART_FRAME_HEADER_1);
+            return false;
     }
-    else if(byteFrame == UartFrameConstants::UART_FRAME_ERROR_ENCRYPTED)
-    {
-        PLAT_LOG_D(__FMT_STR__, "[ENCRYPTED FRAME ERROR]");
-        return false;
-    }
-    else if(byteFrame == UartFrameConstants::UART_FRAME_ERROR_UNKNOWN)
-    {
-        PLAT_LOG_D(__FMT_STR__, "[UNKNOWN FRAME ERROR]");
-        return false;
-    }
-    else if(byteFrame == UartFrameConstants::UART_FRAME_ERROR_MISMATCH)
-    {
-        PLAT_LOG_D(__FMT_STR__, "[MISMATCH FRAME ERROR]");
-        return false;
-    }
-    else if(byteFrame == UartFrameConstants::UART_FRAME_ERROR_IDENTIFIER)
-    {
-        PLAT_LOG_D(__FMT_STR__, "[IDENTIFIER FRAME ERROR]");
-        return false;
-    }
-    PLAT_LOG_D("[HEADER_1 FAILED] actual: %d, expect: %d", byteFrame, UartFrameConstants::UART_FRAME_HEADER_1);
-    return false;
 }
 
 bool UartFrame::isSecondHeaderByteValid(uint8_t byteFrame)
@@ -359,6 +368,8 @@ void UartFrame::constructFrameForTransmittingKeySTM32(uint8_t *secretKey)
     }
 
     try {
+        m_uartFrameSTM32->str_headerHigh = UartFrameConstants::UART_FRAME_HEADER_1;
+        m_uartFrameSTM32->str_headerLow = UartFrameConstants::UART_FRAME_HEADER_2;
         m_uartFrameSTM32->str_packetType = UARTCommand::STM_RECEIVE_KEY;
         std::copy(secretKey, secretKey + SECRET_KEY_SIZE, m_uartFrameSTM32->str_secretKey);
 
@@ -367,6 +378,8 @@ void UartFrame::constructFrameForTransmittingKeySTM32(uint8_t *secretKey)
         //     PLAT_LOG_D("[KEY] %d", m_uartFrameSTM32->str_secretKey[i]);
         // }
         std::copy(IdentifierIDSTM, IdentifierIDSTM + IDENTIFIER_ID_STM_SIZE, m_uartFrameSTM32->str_identifierId);
+        m_uartFrameSTM32->str_trailerHigh = UartFrameConstants::UART_FRAME_TRAILER_1;
+        m_uartFrameSTM32->str_trailerLow = UartFrameConstants::UART_FRAME_TRAILER_2;
         uint16_t crc = CRC16::calculateCRC(m_uartFrameSTM32->str_secretKey, SECRET_KEY_SIZE);
         m_uartFrameSTM32->str_crcHigh = (crc >> 8) & 0xFF;
         // PLAT_LOG_D("[CRC1] %d", m_uartFrameSTM32->str_crcHigh);
@@ -377,6 +390,16 @@ void UartFrame::constructFrameForTransmittingKeySTM32(uint8_t *secretKey)
     catch (const std::exception& e) {
         PLAT_LOG_D("[ERROR] Exception in constructFrameForTransmittingKeySTM32: %s", e.what());
     }
+}
+
+void UartFrame::constructFrameForTransmittingTriggerSignal()
+{
+    m_uartFrameSTM32Trigger->str_headerHigh = UartFrameConstants::UART_FRAME_HEADER_1;
+    m_uartFrameSTM32Trigger->str_headerLow = UartFrameConstants::UART_FRAME_HEADER_2;
+    m_uartFrameSTM32Trigger->str_triggerSignal = UartFrameConstants::UART_FRAME_TRIGGER_SIGNAL;
+    m_uartFrameSTM32Trigger->str_trailerHigh = UartFrameConstants::UART_FRAME_TRAILER_1;
+    m_uartFrameSTM32Trigger->str_trailerLow = UartFrameConstants::UART_FRAME_TRAILER_2;
+    PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting trigger signal to STM32");
 }
 
 std::vector<uint8_t> UartFrame::getNonce()
