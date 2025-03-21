@@ -1,7 +1,7 @@
 #ifndef SETUP_NUMBER_HELPER_HPP
 #define SETUP_NUMBER_HELPER_HPP
 
-#define __AIOT_FOR_MEDTECH_DESLAB__ delay(500)
+#define __AIOT_FOR_MEDTECH_DESLAB__ delay(1000)
 #define IDENTIFIER_ID_STM_SIZE 4
 
 #pragma once
