@@ -47,7 +47,7 @@ typedef struct IGNORE_PADDING
     uint16_t s_payloadLength;      // Length of encrypted payload
     //Fix me, the allocation declaration not safe, redefine some variables
     uint8_t s_encryptedPayload[NUMBER_BYTE_OF_DATA + AUTH_TAG_SIZE]; // Encrypted data (Ascon-128)
-    uint8_t s_authTag[AUTH_TAG_SIZE];         // Integrity/authentication tag
+    uint32_t s_macTag;       // Integrity/authentication tag
     uint16_t s_endMarker;
 } ServerFrameData;
 }

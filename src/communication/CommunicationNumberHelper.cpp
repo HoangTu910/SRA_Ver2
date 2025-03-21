@@ -11,11 +11,17 @@ namespace WifiHelper
 
     char *SSID = (char*)"Hoang Tuan";
     char *PASSWORD = (char*)"03081973";
+
+    // char *SSID = (char*)"FETEL@DESLAB_SV";
+    // char *PASSWORD = (char*)"DeslabSV";
+
+    // char *SSID = (char*)"Redmi Note 11S";
+    // char *PASSWORD = (char*)"hoangtu2003";
 }
 
 namespace MQTTHelper
 {   
-    char* MQTT_SERVER = (char*)"113.161.225.11";
+    char* MQTT_SERVER = (char*)"192.168.1.7";
     int MQTT_PORT = 1885;
     char* MQTT_USER = (char*)"admin";
     char* MQTT_PASSWORD = (char*)"123";

@@ -9,6 +9,8 @@
 #include "setupConfiguration/SetupNumberHelper.hpp"
 
 #define UART_FRAME_MAX_DATA_SIZE 255
+#define SECRET_KEY_SIZE 48
+#define IDENTIFIER_ID_SIZE 4
 #pragma once
 
 /**
@@ -31,13 +33,48 @@ typedef struct UartFrameData
     uint8_t str_crcLow;
 } UartFrameData;
 
+typedef struct IGNORE_PADDING UartFrameSTM32
+{
+    uint8_t str_headerHigh;
+    uint8_t str_headerLow;
+    uint8_t str_packetType;
+    uint8_t str_identifierId[IDENTIFIER_ID_SIZE];
+    uint8_t str_secretKey[SECRET_KEY_SIZE];
+    uint8_t str_trailerHigh;
+    uint8_t str_trailerLow;
+    uint8_t str_crcHigh;
+    uint8_t str_crcLow;
+} UartFrameSTM32;
+
+typedef struct IGNORE_PADDING UartFrameSTM32Trigger
+{
+    uint8_t str_headerHigh;
+    uint8_t str_headerLow;
+    uint8_t str_triggerSignal;
+    uint8_t str_trailerHigh;
+    uint8_t str_trailerLow;
+    uint8_t str_padding[54];
+} UartFrameSTM32Trigger;
+
 class UartFrame
 {
 private:
+    /**
+     * @brief Transmit data over UART
+     * @param data Pointer to the data buffer to transmit
+     * @param size Size of the data to transmit
+     * @return true if transmission successful, false otherwise
+     */
+    bool UARTTransmitting(uint8_t* data, size_t size);
+    
     std::shared_ptr<UartFrameData> m_uartFrame;
+    std::shared_ptr<UartFrameSTM32> m_uartFrameSTM32;
+    std::shared_ptr<UartFrameSTM32Trigger> m_uartFrameSTM32Trigger;
     uint16_t m_dataLength;
     uint16_t m_crcReceive;
     std::vector<uint8_t> m_frameBuffer;
+    std::vector<uint8_t> m_deviceID;
+    std::vector<uint8_t> m_nonceReceive;
     std::vector<uint8_t> m_frameReceiveBuffer;
     UartParserState m_parserNextState;
     UartParserState m_parserFinalState;
@@ -147,6 +184,19 @@ public:
     void collectData(uint8_t byteFrame);
 
     /**
+
+     * @brief Collect device ID
+     * @param byteFrame The byte to collect
+     */
+    void collectDeviceID(uint8_t byteFrame);
+
+    /**
+     * @brief Collect nonce
+     * @param byteFrame The byte to collect
+     */
+    void collectNonce(uint8_t byteFrame);
+
+    /**
      * @brief Smart pointer to create UartFrameData object
      * @return A shared pointer to a new UartFrameData object
      */
@@ -199,6 +249,65 @@ public:
      * @return True if parsing complete, false otherwise
      */
     bool isParsingComplete();
+
+    /**
+     * @brief Construct frame for tranmistting key to STM32
+     * @param secretKey The secret key to transmit
+     */
+    void constructFrameForTransmittingKeySTM32(uint8_t *secretKey);
+
+    /**
+     * @brief Construct frame for transmitting trigger signal to STM32
+     */
+    void constructFrameForTransmittingTriggerSignal();
+
+    /**
+     * @brief Template function for transmitting data using UART
+     * @tparam T Type of the struct containing data
+     * @param data Reference to the struct containing data to transmit
+     * @return true if transmission successful, false otherwise
+     */
+    template<typename T>
+    bool transmitData(const T& data) {
+        if (!m_uart) {
+            return false;
+        }
+        
+        const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(&data);
+        size_t dataSize = sizeof(T);
+        
+        return UARTTransmitting(const_cast<uint8_t*>(dataPtr), dataSize);
+    }
+
+    void logUartData();
+
+    /**
+     * @brief Get the UartFrameSTM32 object
+     * @return The UartFrameSTM32 object
+     */
+    std::shared_ptr<UartFrameSTM32> getUartFrameSTM32() {
+        return m_uartFrameSTM32;
+    }
+
+    /**
+     * @brief Get the UartFrameSTM32Trigger object
+     * @return The UartFrameSTM32Trigger object
+     */
+    std::shared_ptr<UartFrameSTM32Trigger> getUartFrameSTM32Trigger() {
+        return m_uartFrameSTM32Trigger;
+    }
+    
+    /**
+     * @brief Get nonce receive
+     * @return The nonce receive
+     */
+    std::vector<uint8_t> getNonce();
+
+    /**
+     * @brief Get the frame buffer size
+     * @return The frame buffer size
+     */
+    int getFrameBufferSize();
 };
 }
 } // namespace Communication::UartFrame

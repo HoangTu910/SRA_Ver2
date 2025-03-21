@@ -104,6 +104,7 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(const std:
                                                                     const std::vector<unsigned char>& cipherText)
 {
     // Set frame header fields
+    PLAT_LOG_D(__FMT_STR__, "-- Constructing server data frame");
     m_serverDataFrame->s_preamble = SERVER_FRAME_PREAMBLE;
     m_serverDataFrame->s_identifierId = SERVER_FRAME_IDENTIFIER_ID;  
     m_serverDataFrame->s_packetType = SERVER_FRAME_PACKET_DATA_TYPE;
@@ -124,11 +125,7 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(const std:
     }
 
     // Copy authentication tag
-    if(cipherText.size() >= cipherTextLength && cipherTextLength >= AUTH_TAG_SIZE) {
-        std::copy(cipherText.begin() + (cipherTextLength - AUTH_TAG_SIZE),
-                 cipherText.begin() + cipherTextLength,
-                 m_serverDataFrame->s_authTag);
-    }
+    m_serverDataFrame->s_macTag = Utils::MACCompute();
 
     m_serverDataFrame->s_endMarker = SERVER_FRAME_END_MAKER;
 }
@@ -148,6 +145,7 @@ void Transmission::ServerFrame::ServerFrame::sendDataFrameToServer(std::shared_p
                                                                  unsigned long long ciphertextLength,
                                                                  const std::vector<unsigned char>& ciphertext)
 {
+    PLAT_LOG_D("-- Frame buffer size: %d", ciphertextLength);
     constructServerDataFrame(nonce, ciphertextLength, ciphertext);
     mqtt->publishData(m_serverDataFrame.get(), sizeof(DataFrame::ServerFrameData));
 }

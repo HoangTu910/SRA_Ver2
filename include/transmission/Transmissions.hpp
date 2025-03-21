@@ -12,7 +12,8 @@ private:
     std::shared_ptr<Transmission::ServerFrame::ServerFrame> m_server;
     std::shared_ptr<MQTT> m_mqtt;
     TransmissionState m_transmissionFinalState;
-    std::vector<unsigned char> m_data;
+    std::vector<uint8_t> m_data;
+    std::vector<uint8_t> m_nonce;
     unsigned long long m_dataLength;
 public:
     TransmissionState m_transmissionNextState;

@@ -1,7 +1,10 @@
 #ifndef SETUP_NUMBER_HELPER_HPP
 #define SETUP_NUMBER_HELPER_HPP
 
-#define __AIOT_FOR_MEDTECH_DESLAB__ delay(90)
+#define __AIOT_FOR_MEDTECH_DESLAB__ delay(500)
+#define IDENTIFIER_ID_STM_SIZE 4
+
+#pragma once
 
 enum Serial
 {
@@ -24,7 +27,10 @@ enum TransmissionState
 
 enum Device
 {
-    Identifier = 0x01
+    Identifier = 0x01,
+    BYTE_LENGTH = 4
 };
+
+extern uint8_t IdentifierIDSTM[IDENTIFIER_ID_STM_SIZE];
 
 #endif // SETUP_NUMBER_HELPER_HPP

@@ -1,6 +1,6 @@
 # Secu-re-liable Is All You Need
 
-Secu-re-liable is the latest version of **HHT_AIT**, an AIoT-based healthcare system that I initially developed a few months ago. This version focuses on enhancing system performance, eliminating redundant features, and optimizing the data transmission process between the gateway and server. Additionally, the **DVGW** has been redesigned to extend its applicability beyond healthcare, supporting smart home systems, IoT devices, and any sensor-based networks requiring secure and efficient data transfer.
+Secu-re-liable is the latest version of **SRA**, an AIoT-based healthcare system that I initially developed a few months ago. This version focuses on enhancing system performance, eliminating redundant features, and optimizing the data transmission process between the gateway and server. Additionally, the **DVGW** has been redesigned to extend its applicability beyond healthcare, supporting smart home systems, IoT devices, and any sensor-based networks requiring secure and efficient data transfer.
 
 ## What's New?
 - **Enhanced Reliable & Performance**: Introduced two new frame structures to support key exchange and data transmission efficiently.
