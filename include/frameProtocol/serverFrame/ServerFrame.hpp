@@ -28,7 +28,7 @@ typedef struct IGNORE_PADDING
     uint16_t s_preamble; // Sync bytes (e.g., 0xAA55)
     uint32_t s_identifierId; // Unique device/sensor ID
     uint8_t s_packetType; // 0x02 (Handshake)
-    uint16_t s_sequenceNumber; // Monotonic counter for deduplication
+    uint16_t s_sequenceNumber = ServerFrameConstants::INITIAL_SEQUENCE; // Monotonic counter for deduplication
     uint8_t s_publicKey[ECC_PUB_KEY_SIZE]; //Public key for encryption (32 bytes)
     uint16_t s_endMarker; // Integrity/authentication tag
 } HandshakeFrameData;
@@ -41,7 +41,7 @@ typedef struct IGNORE_PADDING
     uint16_t s_preamble;           // Sync bytes (e.g., 0xAA55)
     uint32_t s_identifierId;       // Unique device/sensor ID
     uint8_t s_packetType;          // 0x01 (DATA)
-    uint16_t s_sequenceNumber = ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER;     // Monotonic counter for deduplication
+    int16_t s_sequenceNumber = ServerFrameConstants::INITIAL_SEQUENCE;     // Monotonic counter for deduplication
     uint64_t s_timestamp;          // Timestamp (Unix epoch or device time)
     uint8_t s_nonce[NONCE_SIZE];           // Unique 128-bit nonce for encryption
     uint16_t s_payloadLength;      // Length of encrypted payload
@@ -109,7 +109,7 @@ public:
     /**
      * @brief increase sequence number for each transmission
      */
-    int currentSequenceNumber();
+    void currentSequenceNumber();
 
     /**
      * @brief send data frame to server using MQTT
@@ -122,7 +122,7 @@ public:
     /**
      * @brief return sequence number
      */
-    uint16_t getSequenceNumber();
+    int16_t getSequenceNumber();
 
     /**
      * @brief Wait for ACK package
@@ -133,6 +133,11 @@ public:
      * Get secret key
      */
     std::vector<unsigned char>& getSecretKeyComputed();
-};;
-}
+    
+    /**
+     * @brief Reset sequence number
+     */
+    void resetSequenceNumber();
+};
+} 
 } // namespace Communication::UartFrame

@@ -250,6 +250,8 @@ public:
      */
     bool isParsingComplete();
 
+
+    // Merge 2 construct frame method into single one
     /**
      * @brief Construct frame for tranmistting key to STM32
      * @param secretKey The secret key to transmit
