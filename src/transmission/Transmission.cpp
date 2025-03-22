@@ -56,7 +56,9 @@ bool Transmissions::startTransmissionProcess()
     {
         case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:{
             PLAT_LOG_D(__FMT_STR__, "[1/4] Checking key...");
-            if(m_server->getSequenceNumber() == ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER){
+            if(m_server->getSequenceNumber() == ServerFrameConstants::RESET_SEQUENCE || 
+                m_server->getSequenceNumber() == ServerFrameConstants::INITIAL_SEQUENCE){
+                m_isHandshake = true;    
                 PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
 
                 auto startTime = std::chrono::high_resolution_clock::now();
@@ -75,7 +77,6 @@ bool Transmissions::startTransmissionProcess()
                 m_uart->transmitData(*m_uart->getUartFrameSTM32()); // pass * to get data
 
                 m_handshakeProcessTime += elapsedTime;
-
                 m_server->resetHandshakeState();
             }
             else {
@@ -89,7 +90,12 @@ bool Transmissions::startTransmissionProcess()
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_handshakeProcessTime += elapsedTime;
             }
-            
+            m_transmissionNextState = TransmissionState::WAIT_STATE_FOR_SERVER_PROCESSING_KEY;
+            break;
+        }
+        case TransmissionState::WAIT_STATE_FOR_SERVER_PROCESSING_KEY:{
+            PLAT_LOG_D(__FMT_STR__, "-- Waiting for server to process key...");
+            __WAIT_STATE_FOR_SERVER_PROCESSING_KEY__;
             m_transmissionNextState = TransmissionState::PROCESS_FRAME_PARSING;
             break;
         }
@@ -163,12 +169,14 @@ bool Transmissions::startTransmissionProcess()
             else if(m_mqtt->m_mqttIsTimeout){
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                m_server->resetSequenceNumber();
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
                 PLAT_LOG_D("-- OH FUKK where is ACK? -_- (Timeout after %.2f ms)", elapsedTime);
             }
             else{
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                m_server->resetSequenceNumber();
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
                 PLAT_LOG_D("-- OH FUKK what did you send? -_- (Failed after %.2f ms)", elapsedTime);
             }

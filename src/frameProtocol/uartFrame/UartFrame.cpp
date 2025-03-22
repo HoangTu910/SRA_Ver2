@@ -341,16 +341,19 @@ bool UartFrame::update()
 {
     PLAT_ASSERT_NULL(m_uart, __FMT_STR__, "UART instance is null");
     PLAT_LOG_D(__FMT_STR__, "-- Receiving data from STM32");
+    resetFrameBuffer();
+
     while (m_uart->available())
     {
         uint8_t byte = m_uart->read();
         m_frameReceiveBuffer.push_back(byte);
         // PLAT_LOG_D("[==FRAME STATE==] Byte received: %d", byte);
     }
+
+    // PLAT_LOG_D("[==FRAME STATE==] Frame buffer size: %d", m_frameReceiveBuffer.size());
     bool isParseProcessComplete = parseFrame(m_frameReceiveBuffer);
 
     resetStateMachine();
-
     return isParseProcessComplete;
 }
 
@@ -411,9 +414,9 @@ int UartFrame::getFrameBufferSize()
 {
     return m_frameBuffer.size();
 }
+
 void UartFrame::resetStateMachine()
 {
-    // resetFrameBuffer();
     resetParserState();
     m_dataLength = 0;
     m_crcReceive = 0;

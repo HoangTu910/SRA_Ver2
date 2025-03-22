@@ -44,7 +44,7 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
             m_handshakeFrame->s_preamble = SERVER_FRAME_PREAMBLE;
             m_handshakeFrame->s_identifierId = SERVER_FRAME_IDENTIFIER_ID;
             m_handshakeFrame->s_packetType = SERVER_FRAME_PACKET_HANDSHAKE_TYPE;
-            m_handshakeFrame->s_sequenceNumber = SERVER_FRAME_SEQUENCE_NUMBER;
+            m_handshakeFrame->s_sequenceNumber = RESET_SEQUENCE;
             m_handshakeFrame->s_endMarker = SERVER_FRAME_END_MAKER;
             memcpy(m_handshakeFrame->s_publicKey, ECDH::devicePublicKey, ECC_PUB_KEY_SIZE);
             // PLAT_LOG_D(__FMT_STR__, "-- Contructed public key frame");
@@ -108,7 +108,15 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(const std:
     m_serverDataFrame->s_preamble = SERVER_FRAME_PREAMBLE;
     m_serverDataFrame->s_identifierId = SERVER_FRAME_IDENTIFIER_ID;  
     m_serverDataFrame->s_packetType = SERVER_FRAME_PACKET_DATA_TYPE;
-    currentSequenceNumber();
+    // currentSequenceNumber();
+    if(m_serverDataFrame->s_sequenceNumber >= ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER) 
+    {
+        m_serverDataFrame->s_sequenceNumber = ServerFrameConstants::RESET_SEQUENCE;
+    }
+    else
+    {
+        m_serverDataFrame->s_sequenceNumber++;
+    }
     m_serverDataFrame->s_timestamp = std::time(nullptr); // Current timestamp
 
     // Copy nonce
@@ -130,14 +138,12 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(const std:
     m_serverDataFrame->s_endMarker = SERVER_FRAME_END_MAKER;
 }
 
-int Transmission::ServerFrame::ServerFrame::currentSequenceNumber()
+void Transmission::ServerFrame::ServerFrame::currentSequenceNumber()
 {
-    if(m_serverDataFrame->s_sequenceNumber > ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER) 
+    if(m_serverDataFrame->s_sequenceNumber >= ServerFrameConstants::SERVER_FRAME_SEQUENCE_NUMBER) 
     {
         m_serverDataFrame->s_sequenceNumber = ServerFrameConstants::RESET_SEQUENCE;
-        return m_serverDataFrame->s_sequenceNumber;
     }
-    return m_serverDataFrame->s_sequenceNumber++;
 }
 
 void Transmission::ServerFrame::ServerFrame::sendDataFrameToServer(std::shared_ptr<MQTT> mqtt,
@@ -150,7 +156,7 @@ void Transmission::ServerFrame::ServerFrame::sendDataFrameToServer(std::shared_p
     mqtt->publishData(m_serverDataFrame.get(), sizeof(DataFrame::ServerFrameData));
 }
 
-uint16_t Transmission::ServerFrame::ServerFrame::getSequenceNumber()
+int16_t Transmission::ServerFrame::ServerFrame::getSequenceNumber()
 {
     return m_serverDataFrame->s_sequenceNumber;
 }
@@ -179,4 +185,9 @@ bool Transmission::ServerFrame::ServerFrame::isAckFromServerArrived(std::shared_
 std::vector<unsigned char>& Transmission::ServerFrame::ServerFrame::getSecretKeyComputed()
 {
     return m_secretKeyComputed;
+}
+
+void Transmission::ServerFrame::ServerFrame::resetSequenceNumber()
+{
+    m_serverDataFrame->s_sequenceNumber = ServerFrameConstants::INITIAL_SEQUENCE;
 }
