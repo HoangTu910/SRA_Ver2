@@ -51,7 +51,7 @@ void loop() {
     if (controller->m_transmissionNextState == TransmissionState::TRANSMISSION_ERROR && controller->m_isFrameParsing == true) {
         packetLoss++;
         controller->m_isFrameParsing = false;
-        PLAT_LOG_D("S: %d - L: %d", packetSuccess, packetLoss);
+        // PLAT_LOG_D("S: %d - L: %d", packetSuccess, packetLoss);
     }
     else if (controller->m_transmissionNextState == TransmissionState::TRANSMISSION_COMPLETE) {
         auto endTime = std::chrono::high_resolution_clock::now();
@@ -59,8 +59,8 @@ void loop() {
         totalTime += elapsedTime;
         packetSuccess++;
         packetsThisMinute++;
-        PLAT_LOG_D("%d  %d", packetSuccess, packetLoss);
-        PLAT_LOG_D("%.2f ms", totalTime / packetSuccess);
+        // PLAT_LOG_D("%d  %d", packetSuccess, packetLoss);
+        PLAT_LOG_D("%.1f", totalTime / packetSuccess);
     }
 
     if (millis() - minuteTimer >= 60000) {
@@ -108,5 +108,4 @@ void loop() {
             while(1); // Stop after 2 hours
         }
     }
-    __AIOT_FOR_MEDTECH_DESLAB__;
 }

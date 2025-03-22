@@ -16,6 +16,7 @@ private:
     std::vector<uint8_t> m_nonce;
     unsigned long long m_dataLength;
     bool m_isHandshake = false;
+    int m_countPacket = 0;
 public:
     TransmissionState m_transmissionNextState;
     double m_frameProcessTime;

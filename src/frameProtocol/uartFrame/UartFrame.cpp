@@ -26,9 +26,8 @@ bool UartFrame::UARTTransmitting(uint8_t* data, size_t size) {
     // for(int i = 0; i < size; i++) {
     //     PLAT_LOG_D("[UART TX %d] Data: %d", i, data[i]);
     // }
-    m_uart->flush(); // Ensure all data is sent
+    m_uart->flush(); 
 
-    // Check if all bytes were written successfully
     if (bytesWritten != size) {
         PLAT_LOG_D("[UART TX ERROR] Bytes written: %d, Expected: %d", bytesWritten, size);
         return false;
@@ -340,7 +339,7 @@ void UartFrame::beginUartCommunication()
 bool UartFrame::update()
 {
     PLAT_ASSERT_NULL(m_uart, __FMT_STR__, "UART instance is null");
-    PLAT_LOG_D(__FMT_STR__, "-- Receiving data from STM32");
+    // PLAT_LOG_D(__FMT_STR__, "-- Receiving data from STM32");
     resetFrameBuffer();
 
     while (m_uart->available())
