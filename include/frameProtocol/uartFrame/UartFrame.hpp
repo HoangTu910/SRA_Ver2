@@ -279,8 +279,6 @@ public:
         return UARTTransmitting(const_cast<uint8_t*>(dataPtr), dataSize);
     }
 
-    void logUartData();
-
     /**
      * @brief Get the UartFrameSTM32 object
      * @return The UartFrameSTM32 object
