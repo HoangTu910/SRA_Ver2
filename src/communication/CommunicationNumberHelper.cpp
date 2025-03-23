@@ -3,20 +3,8 @@
 
 namespace WifiHelper
 {
-    // char *SSID = (char*)"The Jade Coffee and Tea";
-    // char *PASSWORD = (char*)"caphengon";
-
-    // char *SSID = (char*)"Dau Cafe Ngoai Troi";
-    // char *PASSWORD = (char*)"Mocua24h";
-
-    char *SSID = (char*)"Hoang Tuan";
-    char *PASSWORD = (char*)"03081973";
-
-    // char *SSID = (char*)"FETEL@DESLAB_SV";
-    // char *PASSWORD = (char*)"DeslabSV";
-
-    // char *SSID = (char*)"Redmi Note 11S";
-    // char *PASSWORD = (char*)"hoangtu2003";
+    char *SSID = (char*)"Your Wifi ID";
+    char *PASSWORD = (char*)"Your Wifi Password";
 }
 
 namespace MQTTHelper
