@@ -26,15 +26,14 @@ bool UartFrame::UARTTransmitting(uint8_t* data, size_t size) {
     // for(int i = 0; i < size; i++) {
     //     PLAT_LOG_D("[UART TX %d] Data: %d", i, data[i]);
     // }
-    m_uart->flush(); // Ensure all data is sent
+    m_uart->flush(); 
 
-    // Check if all bytes were written successfully
     if (bytesWritten != size) {
         PLAT_LOG_D("[UART TX ERROR] Bytes written: %d, Expected: %d", bytesWritten, size);
         return false;
     }
 
-    PLAT_LOG_D("-- Transmitted succesfull %d bytes", bytesWritten);
+    // PLAT_LOG_D("-- Transmitted succesfull %d bytes", bytesWritten);
     return true;
 }
 
@@ -122,27 +121,27 @@ bool UartFrame::isFirstHeaderByteValid(uint8_t byteFrame)
             return true;
             
         case UartFrameConstants::UART_FRAME_ERROR_ENCRYPTED:
-            PLAT_LOG_D(__FMT_STR__, "[ENCRYPTED FRAME ERROR]");
+            // PLAT_LOG_D(__FMT_STR__, "[ENCRYPTED FRAME ERROR]");
             return false;
             
         case UartFrameConstants::UART_FRAME_ERROR_UNKNOWN:
-            PLAT_LOG_D(__FMT_STR__, "[UNKNOWN FRAME ERROR]");
+            // PLAT_LOG_D(__FMT_STR__, "[UNKNOWN FRAME ERROR]");
             return false;
             
         case UartFrameConstants::UART_FRAME_ERROR_MISMATCH:
-            PLAT_LOG_D(__FMT_STR__, "[MISMATCH FRAME ERROR]");
+            // PLAT_LOG_D(__FMT_STR__, "[MISMATCH FRAME ERROR]");
             return false;
             
         case UartFrameConstants::UART_FRAME_ERROR_IDENTIFIER:
-            PLAT_LOG_D(__FMT_STR__, "[IDENTIFIER FRAME ERROR]");
+            // PLAT_LOG_D(__FMT_STR__, "[IDENTIFIER FRAME ERROR]");
             return false;
 
         case UartFrameConstants::UART_FRAME_ERROR_HEADER_MISMATCH:
-            PLAT_LOG_D(__FMT_STR__, "[HEADER MISMATCH FRAME ERROR]");
+            // PLAT_LOG_D(__FMT_STR__, "[HEADER MISMATCH FRAME ERROR]");
             return false;
         
         case UartFrameConstants::UART_FRAME_ERROR_TRAILER_MISMATCH:
-            PLAT_LOG_D(__FMT_STR__, "[TRAILER MISMATCH FRAME ERROR]");
+            // PLAT_LOG_D(__FMT_STR__, "[TRAILER MISMATCH FRAME ERROR]");
             return false;
             
         default:
@@ -340,8 +339,23 @@ void UartFrame::beginUartCommunication()
 bool UartFrame::update()
 {
     PLAT_ASSERT_NULL(m_uart, __FMT_STR__, "UART instance is null");
-    PLAT_LOG_D(__FMT_STR__, "-- Receiving data from STM32");
+    // PLAT_LOG_D(__FMT_STR__, "-- Receiving data from STM32");
     resetFrameBuffer();
+
+    // Wait for data with a timeout, avoid condition where data from STM32 have not arrived
+    auto startTime = std::chrono::high_resolution_clock::now();
+    const int MAX_WAIT_MS = 100; 
+    while (m_uart->available() == 0)
+    {
+        auto now = std::chrono::high_resolution_clock::now();
+        double elapsed = std::chrono::duration<double, std::milli>(now - startTime).count();
+        if (elapsed > MAX_WAIT_MS)
+        {
+            // PLAT_LOG_D(__FMT_STR__, "-- Timeout: No data received from STM32");
+            resetStateMachine();
+            return false; 
+        }
+    }
 
     while (m_uart->available())
     {
@@ -388,7 +402,7 @@ void UartFrame::constructFrameForTransmittingKeySTM32(uint8_t *secretKey)
         // PLAT_LOG_D("[CRC1] %d", m_uartFrameSTM32->str_crcHigh);
         m_uartFrameSTM32->str_crcLow = crc & 0xFF;
         // PLAT_LOG_D("[CRC2] %d", m_uartFrameSTM32->str_crcLow);
-        PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting key to STM32");
+        // PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting key to STM32");
     }
     catch (const std::exception& e) {
         PLAT_LOG_D("[ERROR] Exception in constructFrameForTransmittingKeySTM32: %s", e.what());
@@ -402,7 +416,7 @@ void UartFrame::constructFrameForTransmittingTriggerSignal()
     m_uartFrameSTM32Trigger->str_triggerSignal = UartFrameConstants::UART_FRAME_TRIGGER_SIGNAL;
     m_uartFrameSTM32Trigger->str_trailerHigh = UartFrameConstants::UART_FRAME_TRAILER_1;
     m_uartFrameSTM32Trigger->str_trailerLow = UartFrameConstants::UART_FRAME_TRAILER_2;
-    PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting trigger signal to STM32");
+    // PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting trigger signal to STM32");
 }
 
 std::vector<uint8_t> UartFrame::getNonce()

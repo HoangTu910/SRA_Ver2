@@ -21,7 +21,7 @@ namespace WifiHelper
 
 namespace MQTTHelper
 {   
-    char* MQTT_SERVER = (char*)"192.168.1.6";
+    char* MQTT_SERVER = (char*)"192.168.1.2";
     int MQTT_PORT = 1885;
     char* MQTT_USER = (char*)"admin";
     char* MQTT_PASSWORD = (char*)"123";
