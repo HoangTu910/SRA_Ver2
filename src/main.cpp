@@ -69,7 +69,7 @@ void loop() {
         pdrPerMinute.push_back(pdr);
         frameTimePerMinute.push_back(totalPacketsThisMinute > 0 ? (double)controller->m_frameProcessTime / totalPacketsThisMinute : 0);
         handshakeTimePerMinute.push_back(totalPacketsThisMinute > 0 ? (double)controller->m_handshakeProcessTime / totalPacketsThisMinute : 0);
-        encryptTimePerMinute.push_back(totalPacketsThisMinute > 0 ? (double)controller->m_encryptionProcessTime / totalPacketsThisMinute : 0);
+        // encryptTimePerMinute.push_back(totalPacketsThisMinute > 0 ? (double)controller->m_encryptionProcessTime / totalPacketsThisMinute : 0);
         sendDataPerMinute.push_back(totalPacketsThisMinute > 0 ? (double)controller->m_sendDataProcessTime / totalPacketsThisMinute : 0);
         ackResponsePerMinute.push_back(totalPacketsThisMinute > 0 ? (double)controller->m_ackResponseTime / totalPacketsThisMinute : 0);
         currentMinute++;
@@ -84,7 +84,7 @@ void loop() {
         controller->m_ackResponseTime = 0;
 
         // After 2 hours (120 minutes), print results
-        if (currentMinute >= 60) {
+        if (currentMinute >= 120) {
             Serial.println("Packets per minute:");
             for (size_t i = 0; i < packetsPerMinute.size(); i++) {
                 Serial.printf("Minute %d: %d packets\n", i + 1, packetsPerMinute[i]);
@@ -100,7 +100,7 @@ void loop() {
                 Serial.printf("Minute %d:\n", i + 1);
                 Serial.printf("  Frame Time: %.2f ms\n", frameTimePerMinute[i]);
                 Serial.printf("  Handshake Time: %.2f ms\n", handshakeTimePerMinute[i]);
-                Serial.printf("  Encryption Time: %.2f ms\n", encryptTimePerMinute[i]);
+                // Serial.printf("  Encryption Time: %.2f ms\n", encryptTimePerMinute[i]);
                 Serial.printf("  Send Data Time: %.2f ms\n", sendDataPerMinute[i]);
                 Serial.printf("  ACK Response Time: %.2f ms\n", ackResponsePerMinute[i]);
             }
@@ -108,4 +108,5 @@ void loop() {
             while(1); // Stop after 2 hours
         }
     }
+    // __AIOT_FOR_MEDTECH_DESLAB__;
 }

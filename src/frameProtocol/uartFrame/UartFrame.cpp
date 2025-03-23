@@ -342,6 +342,21 @@ bool UartFrame::update()
     // PLAT_LOG_D(__FMT_STR__, "-- Receiving data from STM32");
     resetFrameBuffer();
 
+    // Wait for data with a timeout, avoid condition where data from STM32 have not arrived
+    auto startTime = std::chrono::high_resolution_clock::now();
+    const int MAX_WAIT_MS = 100; 
+    while (m_uart->available() == 0)
+    {
+        auto now = std::chrono::high_resolution_clock::now();
+        double elapsed = std::chrono::duration<double, std::milli>(now - startTime).count();
+        if (elapsed > MAX_WAIT_MS)
+        {
+            // PLAT_LOG_D(__FMT_STR__, "-- Timeout: No data received from STM32");
+            resetStateMachine();
+            return false; 
+        }
+    }
+
     while (m_uart->available())
     {
         uint8_t byte = m_uart->read();

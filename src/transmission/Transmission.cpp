@@ -56,10 +56,8 @@ bool Transmissions::startTransmissionProcess()
     {
         case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:{
             // PLAT_LOG_D(__FMT_STR__, "[1/4] Checking key...");
-            m_countPacket = 0;
             if(m_server->getSequenceNumber() == ServerFrameConstants::RESET_SEQUENCE || 
-                m_server->getSequenceNumber() == ServerFrameConstants::INITIAL_SEQUENCE){
-                m_isHandshake = true;    
+                m_server->getSequenceNumber() == ServerFrameConstants::INITIAL_SEQUENCE){  
                 // PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
 
                 auto startTime = std::chrono::high_resolution_clock::now();
@@ -84,7 +82,6 @@ bool Transmissions::startTransmissionProcess()
                 // PLAT_LOG_D(__FMT_STR__, "-- Key is still valid");
                 auto startTime = std::chrono::high_resolution_clock::now();
                 auto endTime = std::chrono::high_resolution_clock::now();
-                m_countPacket++;
                 m_uart->constructFrameForTransmittingTriggerSignal();
                 // PLAT_LOG_D(__FMT_STR__, "-- Transmiting trigger signal to STM32");
                 m_uart->transmitData(*m_uart->getUartFrameSTM32Trigger()); // pass * to get data
@@ -95,27 +92,10 @@ bool Transmissions::startTransmissionProcess()
             m_transmissionNextState = TransmissionState::PROCESS_FRAME_PARSING;
             break;
         }
-        case TransmissionState::WAIT_STATE_FOR_SERVER_PROCESSING_KEY:{
-            // PLAT_LOG_D(__FMT_STR__, "-- Waiting for server to process key...");
-            if(m_countPacket < NUM_PACKETS_WAIT_FOR_STABLE) {
-                __WAIT_STATE_FOR_SERVER_PROCESSING_KEY__;
-            }
-            else {
-                __SLIGHT_DELAY__;
-            }
-            // __WAIT_STATE_FOR_SERVER_PROCESSING_KEY__;
-            m_transmissionNextState = TransmissionState::PROCESS_FRAME_PARSING;
-            break;
-        }
+    
         case TransmissionState::PROCESS_FRAME_PARSING:{
-            if(m_countPacket < NUM_PACKETS_WAIT_FOR_STABLE) {
-                __WAIT_STATE_FOR_SERVER_PROCESSING_KEY__;
-            }
-            // else {
-            //     __SLIGHT_DELAY__;
-            // }
-            // PLAT_LOG_D(__FMT_STR__, "[2/4] Receive and process frame...");
             auto startTime = std::chrono::high_resolution_clock::now();
+            
             bool isUpdateAndParsingComplete = m_uart->update();
             if(isUpdateAndParsingComplete)
             {
@@ -161,7 +141,6 @@ bool Transmissions::startTransmissionProcess()
                                             m_nonce,
                                             m_dataLength,
                                             m_data);
-            
             auto endTime = std::chrono::high_resolution_clock::now();
             double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
             m_sendDataProcessTime += elapsedTime;
