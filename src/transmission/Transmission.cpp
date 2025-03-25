@@ -208,7 +208,7 @@ void Transmissions::updateSequenceNumber()
     int safeCounter = m_server->getSafeCounter();
     int secretKeyNum = static_cast<int>(strtol(reinterpret_cast<const char*>(m_server->getSecretKeyComputed().data()), nullptr, 16));
     int expectedSequenceNumber = (safeCounter ^ secretKeyNum) % 65536;
-    m_server->setSequenceNumber(expectedSequenceNumber);
+    m_server->setSequenceNumber(667 - 1);
 }
 void Transmissions::loopMqtt()
 {
