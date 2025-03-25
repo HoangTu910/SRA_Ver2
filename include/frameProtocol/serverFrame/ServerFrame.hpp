@@ -63,6 +63,7 @@ private:
     HandshakeState m_handshakeNextState;
     uint32_t m_lastByteTimestamp;
     bool m_isParsingActive = false;
+    int m_safeCounter = 100;
     int sequenceNumber = 100;
     std::vector<unsigned char> m_secretKeyComputed;
 public:
@@ -127,7 +128,7 @@ public:
     /**
      * @brief Wait for ACK package
      */
-    bool isAckFromServerArrived(std::shared_ptr<MQTT> mqtt);
+    int isPacketFromServerReached(std::shared_ptr<MQTT> mqtt);
 
     /**
      * Get secret key
@@ -138,6 +139,16 @@ public:
      * @brief Reset sequence number
      */
     void resetSequenceNumber();
+
+    /**
+     * @brief Get safe counter
+     */
+    int getSafeCounter();
+
+    /**
+     * @brief Set sequence number
+     */
+    void setSequenceNumber(int sequenceNumber);
 };
 } 
 } // namespace Communication::UartFrame

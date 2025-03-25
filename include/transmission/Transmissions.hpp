@@ -65,6 +65,11 @@ public:
     bool startTransmissionProcess();
 
     /**
+     * @brief update sequence number when receive signal from server
+     */
+    void updateSequenceNumber();
+
+    /**
      * @brief Loop the MQTT connection
      */
     void loopMqtt();

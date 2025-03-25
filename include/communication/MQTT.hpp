@@ -27,6 +27,7 @@ public:
     uint8_t m_mqttCallBackDataReceive[ECC_PUB_KEY_SIZE];
     bool m_mqttIsMessageArrived = false;
     bool m_mqttIsAckPackageArrived = false;
+    bool m_mqttIsSequenceNumberNeededUpdate = false;
     bool m_mqttIsTimeout = false;
     MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword, char *mqttPublicKeyReceiveTopic);
     ~MQTT();
