@@ -117,7 +117,6 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(const std:
     {
         m_serverDataFrame->s_sequenceNumber++;
     }
-    m_safeCounter = m_serverDataFrame->s_sequenceNumber; // keep safe counter synchronize with sequence number
     m_serverDataFrame->s_timestamp = std::time(nullptr); // current timestamp
 
     // Copy nonce
@@ -202,6 +201,11 @@ void Transmission::ServerFrame::ServerFrame::resetSequenceNumber()
 int Transmission::ServerFrame::ServerFrame::getSafeCounter()
 {
     return m_safeCounter;
+}
+
+void Transmission::ServerFrame::ServerFrame::setSafeCounter(int safeCounter)
+{
+    m_safeCounter = safeCounter;
 }
 
 void Transmission::ServerFrame::ServerFrame::setSequenceNumber(int sequenceNumber)

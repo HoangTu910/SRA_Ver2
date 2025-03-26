@@ -63,7 +63,7 @@ private:
     HandshakeState m_handshakeNextState;
     uint32_t m_lastByteTimestamp;
     bool m_isParsingActive = false;
-    int m_safeCounter = 100;
+    int m_safeCounter = 0;
     int sequenceNumber = 100;
     std::vector<unsigned char> m_secretKeyComputed;
 public:
@@ -144,6 +144,11 @@ public:
      * @brief Get safe counter
      */
     int getSafeCounter();
+
+    /**
+     * @brief Set safe counter
+     */
+    void setSafeCounter(int safeCounter);
 
     /**
      * @brief Set sequence number

@@ -158,6 +158,8 @@ bool Transmissions::startTransmissionProcess()
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_ackResponseTime += elapsedTime;
+                m_safeCounter = (m_safeCounter + 1) % 65536;
+                m_server->setSafeCounter(m_safeCounter);
                 m_transmissionNextState = TransmissionState::TRANSMISSION_COMPLETE;
                 PLAT_LOG_D("-- Received ACK package from server in %.2f ms", elapsedTime);
             }
@@ -206,10 +208,21 @@ bool Transmissions::startTransmissionProcess()
 void Transmissions::updateSequenceNumber()
 {
     int safeCounter = m_server->getSafeCounter();
-    int secretKeyNum = static_cast<int>(strtol(reinterpret_cast<const char*>(m_server->getSecretKeyComputed().data()), nullptr, 16));
+    PLAT_LOG_D("-- Safe counter used for updating sequence: %d", safeCounter);
+    const std::vector<uint8_t>& secretKey = m_server->getSecretKeyComputed();  
+
+    uint16_t secretKeyNum = 0;
+
+    for (size_t i = 0; i < secretKey.size(); i++) {
+        secretKeyNum ^= secretKey[i] << ((i % 2) * 8);  
+    }
+
     int expectedSequenceNumber = (safeCounter ^ secretKeyNum) % 65536;
-    m_server->setSequenceNumber(667 - 1);
+    m_server->setSequenceNumber(expectedSequenceNumber - 1);
+
+    PLAT_LOG_D("-- Sequence number updated to %d", expectedSequenceNumber);
 }
+
 void Transmissions::loopMqtt()
 {
     m_mqtt->connect();
