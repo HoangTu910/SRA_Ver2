@@ -94,8 +94,8 @@ bool Transmissions::startTransmissionProcess()
         }
     
         case TransmissionState::PROCESS_FRAME_PARSING:{
+            PLAT_LOG_D(__FMT_STR__, "[2/4] Frame processing...");
             auto startTime = std::chrono::high_resolution_clock::now();
-            
             bool isUpdateAndParsingComplete = m_uart->update();
             if(isUpdateAndParsingComplete)
             {
@@ -153,12 +153,23 @@ bool Transmissions::startTransmissionProcess()
         {
             PLAT_LOG_D(__FMT_STR__, "[4/4] Waiting for ACK package...");
             auto startTime = std::chrono::high_resolution_clock::now();
-            if(m_server->isAckFromServerArrived(m_mqtt)){
+            int packetStatus = m_server->isPacketFromServerReached(m_mqtt);
+            if(packetStatus == ServerFrameConstants::SERVER_RECEIVE_ACK){
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_ackResponseTime += elapsedTime;
+                m_safeCounter = (m_safeCounter + 1) % 65536;
+                m_server->setSafeCounter(m_safeCounter);
                 m_transmissionNextState = TransmissionState::TRANSMISSION_COMPLETE;
                 PLAT_LOG_D("-- Received ACK package from server in %.2f ms", elapsedTime);
+            }
+            else if(packetStatus == ServerFrameConstants::SERVER_RECEIVE_SEQUENCE_NUMBER){
+                auto endTime = std::chrono::high_resolution_clock::now();
+                double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                m_ackResponseTime += elapsedTime;
+                m_transmissionNextState = TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE; //start again the process
+                PLAT_LOG_D("-- Updating sequence number %.2f ms", elapsedTime);
+                updateSequenceNumber();
             }
             else if(m_mqtt->m_mqttIsTimeout){
                 auto endTime = std::chrono::high_resolution_clock::now();
@@ -192,6 +203,24 @@ bool Transmissions::startTransmissionProcess()
         }
     }
     return false;
+}
+
+void Transmissions::updateSequenceNumber()
+{
+    int safeCounter = m_server->getSafeCounter();
+    PLAT_LOG_D("-- Safe counter used for updating sequence: %d", safeCounter);
+    const std::vector<uint8_t>& secretKey = m_server->getSecretKeyComputed();  
+
+    uint16_t secretKeyNum = 0;
+
+    for (size_t i = 0; i < secretKey.size(); i++) {
+        secretKeyNum ^= secretKey[i] << ((i % 2) * 8);  
+    }
+
+    int expectedSequenceNumber = (safeCounter ^ secretKeyNum) % 65536;
+    m_server->setSequenceNumber(expectedSequenceNumber - 1);
+
+    PLAT_LOG_D("-- Sequence number updated to %d", expectedSequenceNumber);
 }
 
 void Transmissions::loopMqtt()

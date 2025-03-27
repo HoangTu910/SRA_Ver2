@@ -117,7 +117,7 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(const std:
     {
         m_serverDataFrame->s_sequenceNumber++;
     }
-    m_serverDataFrame->s_timestamp = std::time(nullptr); // Current timestamp
+    m_serverDataFrame->s_timestamp = std::time(nullptr); // current timestamp
 
     // Copy nonce
     if(nonce.size() >= NONCE_SIZE) {
@@ -161,25 +161,31 @@ int16_t Transmission::ServerFrame::ServerFrame::getSequenceNumber()
     return m_serverDataFrame->s_sequenceNumber;
 }
 
-bool Transmission::ServerFrame::ServerFrame::isAckFromServerArrived(std::shared_ptr<MQTT> mqtt)
+int Transmission::ServerFrame::ServerFrame::isPacketFromServerReached(std::shared_ptr<MQTT> mqtt)
 {
     auto startTime = std::chrono::steady_clock::now();
     constexpr auto timeout = std::chrono::seconds(Timer::TIMEOUT_FOR_COMMUNICATION);
-    while(!mqtt->m_mqttIsAckPackageArrived)
+    while(!mqtt->m_mqttIsAckPackageArrived && !mqtt->m_mqttIsSequenceNumberNeededUpdate)
     {
         mqtt->connect();
         if (std::chrono::steady_clock::now() - startTime >= timeout)
         {
             mqtt->m_mqttIsTimeout = true;
-            return false; 
+            return SERVER_MQTT_FAILED; 
         }
     }
     if(mqtt->m_mqttIsAckPackageArrived){
         mqtt->m_mqttIsTimeout = false;
         mqtt->m_mqttIsAckPackageArrived = false;
-        return true;
+        return SERVER_RECEIVE_ACK;
     }
-    return false;
+    else if(mqtt->m_mqttIsSequenceNumberNeededUpdate){
+        PLAT_LOG_D(__FMT_STR__, "-- Attack detected! Received sequence number from server");
+        mqtt->m_mqttIsTimeout = false;
+        mqtt->m_mqttIsSequenceNumberNeededUpdate = false;
+        return SERVER_RECEIVE_SEQUENCE_NUMBER;
+    }
+    return SERVER_MQTT_FAILED;
 }
 
 std::vector<unsigned char>& Transmission::ServerFrame::ServerFrame::getSecretKeyComputed()
@@ -190,4 +196,19 @@ std::vector<unsigned char>& Transmission::ServerFrame::ServerFrame::getSecretKey
 void Transmission::ServerFrame::ServerFrame::resetSequenceNumber()
 {
     m_serverDataFrame->s_sequenceNumber = ServerFrameConstants::INITIAL_SEQUENCE;
+}
+
+int Transmission::ServerFrame::ServerFrame::getSafeCounter()
+{
+    return m_safeCounter;
+}
+
+void Transmission::ServerFrame::ServerFrame::setSafeCounter(int safeCounter)
+{
+    m_safeCounter = safeCounter;
+}
+
+void Transmission::ServerFrame::ServerFrame::setSequenceNumber(int sequenceNumber)
+{
+    m_serverDataFrame->s_sequenceNumber = sequenceNumber;
 }

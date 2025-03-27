@@ -57,7 +57,12 @@ void MQTT::callBack(char *topic, byte *payload, unsigned int length)
         hexStr += hex;
     }
     if(length == 1 && payload[0] == ServerFrameConstants::SERVER_FRAME_PACKET_ACK_TYPE){
+        // PLAT_LOG_D("ACK package arrived [%d]", payload[0]);
         m_mqttIsAckPackageArrived = true;
+    }
+    else if(length == 1 && payload[0] == ServerFrameConstants::SERVER_FRAME_UPDATE_SEQUENCE_NUMBER){
+        // PLAT_LOG_D("Sequence number update [%d]", payload[0]);
+        m_mqttIsSequenceNumberNeededUpdate = true;
     }
     else{
         m_mqttIsMessageArrived = true;

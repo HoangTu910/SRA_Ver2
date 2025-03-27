@@ -17,6 +17,7 @@ private:
     unsigned long long m_dataLength;
     bool m_isHandshake = false;
     int m_countPacket = 0;
+    int m_safeCounter = 0;
 public:
     TransmissionState m_transmissionNextState;
     double m_frameProcessTime;
@@ -63,6 +64,11 @@ public:
      * @brief Send the data to server
      */
     bool startTransmissionProcess();
+
+    /**
+     * @brief update sequence number when receive signal from server
+     */
+    void updateSequenceNumber();
 
     /**
      * @brief Loop the MQTT connection
