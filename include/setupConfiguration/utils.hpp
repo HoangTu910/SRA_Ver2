@@ -44,7 +44,7 @@ void TEST_FAILED(const char* message);
 void TEST_RESULT(bool passed);
 void PLAT_PRINT_BYTES(const char* text, const uint8_t* b, uint64_t len);
 namespace Utils{
-uint32_t MACCompute();
+uint32_t MACCompute(uint16_t inputNumber);
 }
 
 #endif  // UTILS_H

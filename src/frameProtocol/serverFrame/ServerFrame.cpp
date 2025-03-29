@@ -133,7 +133,7 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(const std:
     }
 
     // Copy authentication tag
-    m_serverDataFrame->s_macTag = Utils::MACCompute();
+    m_serverDataFrame->s_macTag = Utils::MACCompute(m_serverDataFrame->s_sequenceNumber);
 
     m_serverDataFrame->s_endMarker = SERVER_FRAME_END_MAKER;
 }
@@ -180,7 +180,7 @@ int Transmission::ServerFrame::ServerFrame::isPacketFromServerReached(std::share
         return SERVER_RECEIVE_ACK;
     }
     else if(mqtt->m_mqttIsSequenceNumberNeededUpdate){
-        PLAT_LOG_D(__FMT_STR__, "-- Attack detected! Received sequence number from server");
+        PLAT_LOG_D(__FMT_STR__, "-- Attack detected! Received signal from server to update sequence number");
         mqtt->m_mqttIsTimeout = false;
         mqtt->m_mqttIsSequenceNumberNeededUpdate = false;
         return SERVER_RECEIVE_SEQUENCE_NUMBER;
