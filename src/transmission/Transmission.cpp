@@ -158,7 +158,7 @@ bool Transmissions::startTransmissionProcess()
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_ackResponseTime += elapsedTime;
-                m_safeCounter = (m_safeCounter + 1) % 65536;
+                m_safeCounter = (m_safeCounter + ((m_safeCounter << 3) ^ (m_safeCounter >> 2) ^ 7)) % 65536;
                 m_server->setSafeCounter(m_safeCounter);
                 m_transmissionNextState = TransmissionState::TRANSMISSION_COMPLETE;
                 PLAT_LOG_D("-- Received ACK package from server in %.2f ms", elapsedTime);

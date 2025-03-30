@@ -33,7 +33,8 @@ bool UartFrame::UARTTransmitting(uint8_t* data, size_t size) {
         return false;
     }
 
-    PLAT_LOG_D("-- Transmitted succesfull %d bytes", bytesWritten);
+    // PLAT_LOG_D("-- Transmitted succesfull %d bytes", bytesWritten);
+    PLAT_LOG_D(__FMT_STR__, "-- Transmission successful");
     return true;
 }
 
