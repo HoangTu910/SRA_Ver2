@@ -10,8 +10,16 @@
 #include "setupConfiguration/SetupNumberHelper.hpp"
 
 #define UART_FRAME_MAX_DATA_SIZE 255
-#define SECRET_KEY_SIZE 48
+#define SECRET_KEY_SIZE 64
 #define IDENTIFIER_ID_SIZE 4
+#define SOF_SIZE 2
+#define EOF_SIZE 2
+#define NONCE_SIZE 16
+#define AAD_MAX_SIZE_LEN 2
+#define AAD_MAX_SIZE 5
+#define AUTH_TAG_SIZE 16
+#define SECRET_KEY_MAX_SIZE_LEN 2
+
 #pragma once
 
 /**
@@ -36,25 +44,27 @@ typedef struct UartFrameData
 
 typedef struct IGNORE_PADDING UartFrameSTM32
 {
-    uint8_t str_headerHigh;
-    uint8_t str_headerLow;
+    uint8_t str_header[SOF_SIZE];
     uint8_t str_packetType;
     uint8_t str_identifierId[IDENTIFIER_ID_SIZE];
+    uint8_t str_nonce[NONCE_SIZE];
+    uint8_t str_addLength[AAD_MAX_SIZE_LEN];
+    uint8_t str_add[AAD_MAX_SIZE];
+    uint8_t str_secretKeyLength[SECRET_KEY_MAX_SIZE_LEN];
     uint8_t str_secretKey[SECRET_KEY_SIZE];
-    uint8_t str_trailerHigh;
-    uint8_t str_trailerLow;
-    uint8_t str_crcHigh;
-    uint8_t str_crcLow;
+    uint8_t str_authTag[AUTH_TAG_SIZE];
+    uint8_t str_eof[EOF_SIZE];
 } UartFrameSTM32;
 
 typedef struct IGNORE_PADDING UartFrameSTM32Trigger
 {
-    uint8_t str_headerHigh;
-    uint8_t str_headerLow;
+    uint8_t str_header[SOF_SIZE];
+    uint8_t str_identifierId[IDENTIFIER_ID_SIZE];
     uint8_t str_triggerSignal;
-    uint8_t str_trailerHigh;
-    uint8_t str_trailerLow;
-    uint8_t str_padding[54];
+    uint8_t str_addLength[AAD_MAX_SIZE_LEN];
+    uint8_t str_add[AAD_MAX_SIZE];
+    uint8_t str_eof[EOF_SIZE];
+    uint8_t str_padding[98]; 
 } UartFrameSTM32Trigger;
 
 class UartFrame
@@ -84,6 +94,7 @@ private:
     bool m_isParsingComplete = false;
     HardwareSerial *m_uart = &Serial1;
 public:
+    const uint8_t IdentifierIDSTM[IDENTIFIER_ID_STM_SIZE] = {0x01, 0x02, 0x03, 0x04};
     /**
      * @brief Constructor of UartFrame
      */
@@ -254,15 +265,26 @@ public:
 
     // Merge 2 construct frame method into single one
     /**
-     * @brief Construct frame for tranmistting key to STM32
-     * @param secretKey The secret key to transmit
+     * @brief Structure to hold STM32 frame parameters
      */
-    void constructFrameForTransmittingKeySTM32(uint8_t *secretKey);
+    struct STM32FrameParams {
+        std::vector<unsigned char> secretKey;
+        std::vector<unsigned char> nonce;
+        std::vector<unsigned char> aad;
+        std::vector<unsigned char> authTag;
+    } m_stm32FrameParams;
+
+    /**
+     * @brief Construct frame for transmitting key to STM32
+     * @param params Structure containing all frame parameters
+     */
+    void constructFrameForTransmittingKeySTM32(const STM32FrameParams& params);
+
 
     /**
      * @brief Construct frame for transmitting trigger signal to STM32
      */
-    void constructFrameForTransmittingTriggerSignal();
+    void constructFrameForTransmittingTriggerSignal(std::vector<unsigned char> associatedData);
 
     /**
      * @brief Template function for transmitting data using UART

@@ -21,6 +21,11 @@ std::vector<unsigned char> Cryptography::Ascon128a::getNonce()
     return m_nonce;
 }
 
+std::vector<unsigned char> Cryptography::Ascon128a::getPresharedSecretKey()
+{
+    return m_presharedSecretKey;
+}
+
 void Cryptography::Ascon128a::setPlainText(const std::vector<unsigned char>& plainText)
 {
     m_plainText = plainText;
@@ -90,4 +95,19 @@ size_t Cryptography::Ascon128a::getCipherTextLength()
 std::shared_ptr<Cryptography::Ascon128a> Cryptography::Ascon128a::create()
 {
     return std::make_shared<Cryptography::Ascon128a>();
+}
+
+std::vector<unsigned char> Cryptography::Ascon128a::getAuthTagFromCipherText()
+{
+    return std::vector<unsigned char>(m_cipherText.end() - ASCON_TAG_SIZE, m_cipherText.end());
+}
+
+void Cryptography::Ascon128a::setAssociatedData(const std::vector<unsigned char>& associatedData)
+{
+    m_associatedData = associatedData;
+}
+
+std::vector<unsigned char> Cryptography::Ascon128a::getAssociatedData()
+{
+    return m_associatedData;
 }

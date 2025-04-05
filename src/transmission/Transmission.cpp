@@ -69,9 +69,26 @@ bool Transmissions::startTransmissionProcess()
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 PLAT_LOG_D("-- Handshake for key exchanging completed in %.2f ms", elapsedTime);
 
-                // Construct frame for transmitting key to STM32
+                /* Encrypt secret key before transmitting to STM32*/
+                std::vector<unsigned char> associatedData = {0x48, 0x45, 0x4C, 0x4C, 0x4F};
+                m_ascon128a->setAssociatedData(associatedData);
+                m_ascon128a->setNonce();
+                m_ascon128a->setPlainText(m_server->getSecretKeyComputed());
+                m_ascon128a->setKey(m_ascon128a->getPresharedSecretKey());
+                m_ascon128a->encrypt();
+
+                // for(int i = 0; i < 6; i++)
+                // {
+                //     PLAT_LOG_D("Key[%d]: %d", i, m_server->getSecretKeyComputed()[i]);
+                // }
+                m_uart->m_stm32FrameParams.secretKey = m_ascon128a->getCipherText();
+                m_uart->m_stm32FrameParams.nonce = m_ascon128a->getNonce();
+                m_uart->m_stm32FrameParams.aad = m_ascon128a->getAssociatedData();
+                m_uart->m_stm32FrameParams.authTag = m_ascon128a->getAuthTagFromCipherText();
+
+                /* Construct frame for transmitting key to STM32 */
                 PLAT_LOG_D(__FMT_STR__, "-- Construct frame key to STM32...");
-                m_uart->constructFrameForTransmittingKeySTM32(m_server->getSecretKeyComputed().data());
+                m_uart->constructFrameForTransmittingKeySTM32(m_uart->m_stm32FrameParams);
                 PLAT_LOG_D(__FMT_STR__, "-- Transmitting key to STM32...");
                 m_uart->transmitData(*m_uart->getUartFrameSTM32()); // pass * to get data
 
@@ -82,7 +99,8 @@ bool Transmissions::startTransmissionProcess()
                 PLAT_LOG_D(__FMT_STR__, "-- Key is still valid");
                 auto startTime = std::chrono::high_resolution_clock::now();
                 auto endTime = std::chrono::high_resolution_clock::now();
-                m_uart->constructFrameForTransmittingTriggerSignal();
+                PLAT_LOG_D(__FMT_STR__, "-- Constructing frame for transmitting trigger signal to STM32...");
+                m_uart->constructFrameForTransmittingTriggerSignal(m_ascon128a->getAssociatedData());
                 PLAT_LOG_D(__FMT_STR__, "-- Transmiting trigger signal to STM32");
                 m_uart->transmitData(*m_uart->getUartFrameSTM32Trigger()); // pass * to get data
 

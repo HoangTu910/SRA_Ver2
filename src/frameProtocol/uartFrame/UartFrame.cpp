@@ -33,8 +33,7 @@ bool UartFrame::UARTTransmitting(uint8_t* data, size_t size) {
         return false;
     }
 
-    // PLAT_LOG_D("-- Transmitted succesfull %d bytes", bytesWritten);
-    PLAT_LOG_D(__FMT_STR__, "-- Transmission successful");
+    PLAT_LOG_D("-- Transmission successful %d bytes", bytesWritten);
     return true;
 }
 
@@ -144,7 +143,18 @@ bool UartFrame::isFirstHeaderByteValid(uint8_t byteFrame)
         case UartFrameConstants::UART_FRAME_ERROR_TRAILER_MISMATCH:
             PLAT_LOG_D(__FMT_STR__, "[TRAILER MISMATCH FRAME ERROR]");
             return false;
-            
+        case UartFrameConstants::UART_FRAME_ERROR_NONCE_MISMATCH:
+            PLAT_LOG_D(__FMT_STR__, "[NONCE MISMATCH FRAME ERROR]");
+            return false;
+        case UartFrameConstants::UART_FRAME_INVALID_AAD_LEN:
+            PLAT_LOG_D(__FMT_STR__, "[INVALID AAD LENGTH FRAME ERROR]");
+            return false;
+        case UartFrameConstants::UART_FRAME_INVALID_SECRET_LEN:
+            PLAT_LOG_D(__FMT_STR__, "[INVALID SECRET LENGTH FRAME ERROR]");
+            return false;
+        case UartFrameConstants::UART_FRAME_DECRYPTION_FAILED:
+            PLAT_LOG_D(__FMT_STR__, "[DECRYPTION FAILED FRAME ERROR]");
+            return false;
         default:
             PLAT_LOG_D("[HEADER_1 FAILED] actual: %d, expect: %d",
                       byteFrame, 
@@ -377,32 +387,24 @@ bool UartFrame::isParsingComplete()
     return m_isParsingComplete;
 }
 
-void UartFrame::constructFrameForTransmittingKeySTM32(uint8_t *secretKey)
+void UartFrame::constructFrameForTransmittingKeySTM32(const STM32FrameParams& params)
 {
-    uint8_t IdentifierIDSTM[IDENTIFIER_ID_STM_SIZE] = {0x01, 0x02, 0x03, 0x04};
-    if (!m_uartFrameSTM32 || !secretKey) {
-        PLAT_LOG_D(__FMT_STR__, "[ERROR] Null pointer in constructFrameForTransmittingKeySTM32");
-        return;
-    }
 
     try {
-        m_uartFrameSTM32->str_headerHigh = UartFrameConstants::UART_FRAME_HEADER_1;
-        m_uartFrameSTM32->str_headerLow = UartFrameConstants::UART_FRAME_HEADER_2;
+        m_uartFrameSTM32->str_header[0] = UartFrameConstants::UART_FRAME_HEADER_1;
+        m_uartFrameSTM32->str_header[1] = UartFrameConstants::UART_FRAME_HEADER_2;
         m_uartFrameSTM32->str_packetType = UARTCommand::STM_RECEIVE_KEY;
-        std::copy(secretKey, secretKey + SECRET_KEY_SIZE, m_uartFrameSTM32->str_secretKey);
-
-        // Key logging
-        // for(int i = 0; i < SECRET_KEY_SIZE; i++) {
-        //     PLAT_LOG_D("[KEY] %d", m_uartFrameSTM32->str_secretKey[i]);
-        // }
         std::copy(IdentifierIDSTM, IdentifierIDSTM + IDENTIFIER_ID_STM_SIZE, m_uartFrameSTM32->str_identifierId);
-        m_uartFrameSTM32->str_trailerHigh = UartFrameConstants::UART_FRAME_TRAILER_1;
-        m_uartFrameSTM32->str_trailerLow = UartFrameConstants::UART_FRAME_TRAILER_2;
-        uint16_t crc = CRC16::calculateCRC(m_uartFrameSTM32->str_secretKey, SECRET_KEY_SIZE);
-        m_uartFrameSTM32->str_crcHigh = (crc >> 8) & 0xFF;
-        // PLAT_LOG_D("[CRC1] %d", m_uartFrameSTM32->str_crcHigh);
-        m_uartFrameSTM32->str_crcLow = crc & 0xFF;
-        // PLAT_LOG_D("[CRC2] %d", m_uartFrameSTM32->str_crcLow);
+        std::copy(params.secretKey.begin(), params.secretKey.begin() + SECRET_KEY_SIZE, m_uartFrameSTM32->str_secretKey);
+        std::copy(params.nonce.begin(), params.nonce.begin() + NONCE_SIZE, m_uartFrameSTM32->str_nonce);
+        std::copy(params.aad.begin(), params.aad.begin() + AAD_MAX_SIZE, m_uartFrameSTM32->str_add);
+        std::copy(params.authTag.begin(), params.authTag.begin() + AUTH_TAG_SIZE, m_uartFrameSTM32->str_authTag);
+        m_uartFrameSTM32->str_addLength[0] = params.aad.size() & 0xFF; // LSB
+        m_uartFrameSTM32->str_addLength[1] = (params.aad.size() >> 8) & 0xFF; // MSB
+        m_uartFrameSTM32->str_secretKeyLength[0] = params.secretKey.size() & 0xFF; // LSB
+        m_uartFrameSTM32->str_secretKeyLength[1] = (params.secretKey.size() >> 8) & 0xFF; // MSB
+        m_uartFrameSTM32->str_eof[0] = UartFrameConstants::UART_FRAME_TRAILER_1;
+        m_uartFrameSTM32->str_eof[1] = UartFrameConstants::UART_FRAME_TRAILER_2;
         PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting key to STM32");
     }
     catch (const std::exception& e) {
@@ -410,14 +412,23 @@ void UartFrame::constructFrameForTransmittingKeySTM32(uint8_t *secretKey)
     }
 }
 
-void UartFrame::constructFrameForTransmittingTriggerSignal()
+void UartFrame::constructFrameForTransmittingTriggerSignal(std::vector<uint8_t> associatedData)
 {
-    m_uartFrameSTM32Trigger->str_headerHigh = UartFrameConstants::UART_FRAME_HEADER_1;
-    m_uartFrameSTM32Trigger->str_headerLow = UartFrameConstants::UART_FRAME_HEADER_2;
-    m_uartFrameSTM32Trigger->str_triggerSignal = UartFrameConstants::UART_FRAME_TRIGGER_SIGNAL;
-    m_uartFrameSTM32Trigger->str_trailerHigh = UartFrameConstants::UART_FRAME_TRAILER_1;
-    m_uartFrameSTM32Trigger->str_trailerLow = UartFrameConstants::UART_FRAME_TRAILER_2;
-    PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting trigger signal to STM32");
+    try {
+        m_uartFrameSTM32->str_header[0] = UartFrameConstants::UART_FRAME_HEADER_1;
+        m_uartFrameSTM32->str_header[1] = UartFrameConstants::UART_FRAME_HEADER_2;
+        std::copy(IdentifierIDSTM, IdentifierIDSTM + IDENTIFIER_ID_STM_SIZE, m_uartFrameSTM32Trigger->str_identifierId);
+        m_uartFrameSTM32Trigger->str_triggerSignal = UARTCommand::SIGNAL;
+        std::copy(associatedData.begin(), associatedData.begin() + AAD_MAX_SIZE, m_uartFrameSTM32Trigger->str_add);
+        m_uartFrameSTM32Trigger->str_addLength[0] = associatedData.size() & 0xFF; // LSB
+        m_uartFrameSTM32Trigger->str_addLength[1] = (associatedData.size() >> 8) & 0xFF; // MSB
+        m_uartFrameSTM32->str_eof[0] = UartFrameConstants::UART_FRAME_TRAILER_1;
+        m_uartFrameSTM32->str_eof[1] = UartFrameConstants::UART_FRAME_TRAILER_2;
+        PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting trigger signal to STM32");
+    }
+    catch (const std::exception& e) {
+        PLAT_LOG_D("[ERROR] Exception in constructFrameForTransmittingKeySTM32: %s", e.what());
+    }
 }
 
 std::vector<uint8_t> UartFrame::getNonce()
