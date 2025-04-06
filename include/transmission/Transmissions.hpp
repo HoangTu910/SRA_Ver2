@@ -14,6 +14,7 @@ private:
     TransmissionState m_transmissionFinalState;
     std::vector<uint8_t> m_data;
     std::vector<uint8_t> m_nonce;
+    std::vector<uint8_t> m_authTag;
     unsigned long long m_dataLength;
     bool m_isHandshake = false;
     int m_countPacket = 0;

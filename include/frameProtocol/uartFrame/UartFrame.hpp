@@ -84,6 +84,7 @@ private:
     uint16_t m_dataLength;
     uint16_t m_crcReceive;
     std::vector<uint8_t> m_frameBuffer;
+    std::vector<uint8_t> m_authTag;
     std::vector<uint8_t> m_deviceID;
     std::vector<uint8_t> m_nonceReceive;
     std::vector<uint8_t> m_frameReceiveBuffer;
@@ -331,6 +332,18 @@ public:
      * @return The frame buffer size
      */
     int getFrameBufferSize();
+
+    /**
+     * @brief Collect the authentication tag
+     * @param byteFrame The byte to collect
+     */
+    void collectAuthTag(uint8_t byteFrame);
+
+    /**
+     * @brief Get the authentication tag
+     * @return The authentication tag
+     */
+    std::vector<uint8_t> getAuthTag();
 };
 }
 } // namespace Communication::UartFrame

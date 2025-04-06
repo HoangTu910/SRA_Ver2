@@ -61,10 +61,20 @@ bool Transmissions::startTransmissionProcess()
                 PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
 
                 auto startTime = std::chrono::high_resolution_clock::now();
+                const auto timeout = std::chrono::seconds(30);
+
                 while(m_server->getHandshakeState() != HandshakeState::HANDSHAKE_COMPLETE)
                 {
                     m_server->performHandshake(m_mqtt);
+                    
+                    /* Check for timeout */
+                    if (std::chrono::high_resolution_clock::now() - startTime >= timeout) {
+                        PLAT_LOG_D(__FMT_STR__, "-- Handshake timeout!");
+                        m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
+                        return false;
+                    }
                 }
+
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 PLAT_LOG_D("-- Handshake for key exchanging completed in %.2f ms", elapsedTime);
@@ -77,10 +87,6 @@ bool Transmissions::startTransmissionProcess()
                 m_ascon128a->setKey(m_ascon128a->getPresharedSecretKey());
                 m_ascon128a->encrypt();
 
-                // for(int i = 0; i < 6; i++)
-                // {
-                //     PLAT_LOG_D("Key[%d]: %d", i, m_server->getSecretKeyComputed()[i]);
-                // }
                 m_uart->m_stm32FrameParams.secretKey = m_ascon128a->getCipherText();
                 m_uart->m_stm32FrameParams.nonce = m_ascon128a->getNonce();
                 m_uart->m_stm32FrameParams.aad = m_ascon128a->getAssociatedData();
@@ -120,6 +126,8 @@ bool Transmissions::startTransmissionProcess()
                 m_data = m_uart->getFrameBuffer();  
                 m_dataLength = m_uart->getFrameBufferSize();
                 m_nonce = m_uart->getNonce();
+                m_authTag = m_uart->getAuthTag();
+
                 m_transmissionNextState = TransmissionState::SEND_DATA_TO_SERVER;
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
@@ -159,7 +167,8 @@ bool Transmissions::startTransmissionProcess()
             m_server->sendDataFrameToServer(m_mqtt, 
                                             m_nonce,
                                             m_dataLength,
-                                            m_data);
+                                            m_data,
+                                            m_authTag);
             auto endTime = std::chrono::high_resolution_clock::now();
             double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
             m_sendDataProcessTime += elapsedTime;

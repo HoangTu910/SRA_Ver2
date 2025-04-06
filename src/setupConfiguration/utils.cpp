@@ -6,7 +6,7 @@
 *@brief Print debug message to serial monitor. Simple to use instead of Serial.print.
 */
 
-#define DEBUG 1
+#define DEBUG
 
 void PLAT_LOG_D(const char* message) {
     #ifdef DEBUG
@@ -15,12 +15,14 @@ void PLAT_LOG_D(const char* message) {
 }
 
 void PLAT_LOG_D(const char* format, ...) {
+    #ifdef DEBUG
     char buffer[LOG_BUFFER];  
     va_list args;
     va_start(args, format);
     vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
     Serial.println(buffer);
+    #endif
 }
 
 void PLAT_LOG_ED(const char* format, ...) {

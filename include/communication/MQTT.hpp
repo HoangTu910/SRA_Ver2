@@ -8,6 +8,7 @@
 #include "communication/CommunicationNumberHelper.hpp"
 #include "ellipticCurve/ecdh.hpp"
 #include "frameProtocol/FrameNumberHelper.hpp"
+#include <vector>
 
 class MQTT
 {
@@ -21,14 +22,14 @@ private:
     char *m_mqttPublicKeyTopic;
     char *m_mqttPublicKeyReceiveTopic;
     WiFiClient m_espClient;
-    PubSubClient m_client;
 public:
     //constructor
-    uint8_t m_mqttCallBackDataReceive[ECC_PUB_KEY_SIZE];
+    std::vector<uint8_t> m_mqttCallBackDataReceive;
     bool m_mqttIsMessageArrived = false;
     bool m_mqttIsAckPackageArrived = false;
     bool m_mqttIsSequenceNumberNeededUpdate = false;
     bool m_mqttIsTimeout = false;
+    PubSubClient m_client;
     MQTT(char *mqttServer, int mqttPort, char *mqttDeviceID, char *mqttDataTopic, char *mqttPublicKeyTopic, char *mqttUser, char *mqttPassword, char *mqttPublicKeyReceiveTopic);
     ~MQTT();
 

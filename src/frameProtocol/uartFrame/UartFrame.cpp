@@ -65,7 +65,11 @@ void UartFrame::parseFrame(uint8_t byteFrame)
         break;
     case UartParserState::RECEIVE_DATA:
         collectData(byteFrame);
-        m_parserNextState = (m_frameBuffer.size() == m_dataLength) ? UartParserState::VERIFY_TRAILER_1_BYTE : UartParserState::RECEIVE_DATA;
+        m_parserNextState = (m_frameBuffer.size() == m_dataLength) ? UartParserState::RECEIVE_AUTH_TAG : UartParserState::RECEIVE_DATA;
+        break;
+    case UartParserState::RECEIVE_AUTH_TAG:
+        collectAuthTag(byteFrame);
+        m_parserNextState = (m_authTag.size() == AUTH_TAG_SIZE) ? UartParserState::VERIFY_TRAILER_1_BYTE : UartParserState::RECEIVE_AUTH_TAG;
         break;
     case UartParserState::VERIFY_TRAILER_1_BYTE:
         m_parserNextState = isFirstTrailerByteValid(byteFrame) ? UartParserState::VERIFY_TRAILER_2_BYTE : UartParserState::FRAME_ERROR;
@@ -111,6 +115,7 @@ void UartFrame::resetFrameBuffer()
     m_frameReceiveBuffer.clear();
     m_deviceID.clear();
     m_nonceReceive.clear();
+    m_authTag.clear();
 }
 
 bool UartFrame::isFirstHeaderByteValid(uint8_t byteFrame)
@@ -258,13 +263,29 @@ void UartFrame::collectData(uint8_t byteFrame)
 {
     if (m_frameBuffer.size() < UART_FRAME_MAX_DATA_SIZE)
     {
-        // PLAT_LOG_D("[DATA] %d", byteFrame);
+        // PLAT_LOG_D("[DATA] %02X", byteFrame);
         m_frameBuffer.push_back(byteFrame);
     }
     else
     {
         PLAT_ASSERT((m_frameBuffer.size() < UART_FRAME_MAX_DATA_SIZE),
                     "[BUFFER OVERFLOW for Data] Max data size reached: %d",
+                    UART_FRAME_MAX_DATA_SIZE);
+        m_parserNextState = UartParserState::FRAME_ERROR;
+    }
+}
+
+void UartFrame::collectAuthTag(uint8_t byteFrame)
+{
+    if (m_authTag.size() < UART_FRAME_MAX_DATA_SIZE)
+    {
+        // PLAT_LOG_D("[DATA] %d", byteFrame);
+        m_authTag.push_back(byteFrame);
+    }
+    else
+    {
+        PLAT_ASSERT((m_authTag.size() < UART_FRAME_MAX_DATA_SIZE),
+                    "[BUFFER OVERFLOW for Auth Tag] Max data size reached: %d",
                     UART_FRAME_MAX_DATA_SIZE);
         m_parserNextState = UartParserState::FRAME_ERROR;
     }
@@ -290,7 +311,7 @@ void UartFrame::collectNonce(uint8_t byteFrame)
 {
     if(m_nonceReceive.size() < NONCE_SIZE)
     {
-        // PLAT_LOG_D("[NONCE] %d", byteFrame);
+        // PLAT_LOG_D("[NONCE] %02X", byteFrame);
         m_nonceReceive.push_back(byteFrame);
     }
     else
@@ -405,7 +426,7 @@ void UartFrame::constructFrameForTransmittingKeySTM32(const STM32FrameParams& pa
         m_uartFrameSTM32->str_secretKeyLength[1] = (params.secretKey.size() >> 8) & 0xFF; // MSB
         m_uartFrameSTM32->str_eof[0] = UartFrameConstants::UART_FRAME_TRAILER_1;
         m_uartFrameSTM32->str_eof[1] = UartFrameConstants::UART_FRAME_TRAILER_2;
-        PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting key to STM32");
+        // PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting key to STM32");
     }
     catch (const std::exception& e) {
         PLAT_LOG_D("[ERROR] Exception in constructFrameForTransmittingKeySTM32: %s", e.what());
@@ -424,7 +445,7 @@ void UartFrame::constructFrameForTransmittingTriggerSignal(std::vector<uint8_t> 
         m_uartFrameSTM32Trigger->str_addLength[1] = (associatedData.size() >> 8) & 0xFF; // MSB
         m_uartFrameSTM32Trigger->str_eof[0] = UartFrameConstants::UART_FRAME_TRAILER_1;
         m_uartFrameSTM32Trigger->str_eof[1] = UartFrameConstants::UART_FRAME_TRAILER_2;
-        PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting trigger signal to STM32");
+        // PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting trigger signal to STM32");
     }
     catch (const std::exception& e) {
         PLAT_LOG_D("[ERROR] Exception in constructFrameForTransmittingKeySTM32: %s", e.what());
@@ -434,6 +455,11 @@ void UartFrame::constructFrameForTransmittingTriggerSignal(std::vector<uint8_t> 
 std::vector<uint8_t> UartFrame::getNonce()
 {
     return m_nonceReceive;
+}
+
+std::vector<uint8_t> UartFrame::getAuthTag()
+{
+    return m_authTag;
 }
 
 int UartFrame::getFrameBufferSize()

@@ -10,9 +10,11 @@
 #include "ellipticCurve/ecdh.hpp"
 #include "communication/MQTT.hpp"
 #include "asconEncryptionHelper/asconPrintstate.hpp"
+#include "asconCryptography/Ascon128a.hpp"
 
 #define UART_FRAME_MAX_DATA_SIZE 255
 #define NUMBER_BYTE_OF_DATA 4
+#define ENCRYPT_PAYLOAD_SIZE 20
 
 /**
  * @brief The data will be construct following this frame before sending to device or receive from device.
@@ -25,12 +27,14 @@ namespace Handshake
 {
 typedef struct IGNORE_PADDING
 {
-    uint16_t s_preamble; // Sync bytes (e.g., 0xAA55)
-    uint32_t s_identifierId; // Unique device/sensor ID
-    uint8_t s_packetType; // 0x02 (Handshake)
-    uint16_t s_sequenceNumber = ServerFrameConstants::INITIAL_SEQUENCE; // Monotonic counter for deduplication
-    uint8_t s_publicKey[ECC_PUB_KEY_SIZE]; //Public key for encryption (32 bytes)
-    uint16_t s_endMarker; // Integrity/authentication tag
+    uint16_t s_preamble;
+    uint32_t s_identifierId;
+    uint8_t s_packetType; 
+    uint8_t s_nonce[NONCE_SIZE]; 
+    uint8_t s_publicKeyLength;
+    uint8_t s_publicKey[ECC_PUB_KEY_SIZE]; 
+    uint8_t s_authTag[AUTH_TAG_SIZE];
+    uint16_t s_endMarker; 
 } HandshakeFrameData;
 }
 
@@ -38,16 +42,14 @@ namespace DataFrame
 {
 typedef struct IGNORE_PADDING
 {
-    uint16_t s_preamble;           // Sync bytes (e.g., 0xAA55)
-    uint32_t s_identifierId;       // Unique device/sensor ID
-    uint8_t s_packetType;          // 0x01 (DATA)
-    int16_t s_sequenceNumber = ServerFrameConstants::INITIAL_SEQUENCE;     // Monotonic counter for deduplication
-    uint64_t s_timestamp;          // Timestamp (Unix epoch or device time)
-    uint8_t s_nonce[NONCE_SIZE];           // Unique 128-bit nonce for encryption
-    uint16_t s_payloadLength;      // Length of encrypted payload
-    //Fix me, the allocation declaration not safe, redefine some variables
-    uint8_t s_encryptedPayload[NUMBER_BYTE_OF_DATA + AUTH_TAG_SIZE]; // Encrypted data (Ascon-128)
-    uint32_t s_macTag;       // Integrity/authentication tag
+    uint16_t s_preamble;           
+    uint32_t s_identifierId;       
+    uint8_t s_packetType;          
+    int32_t s_sequenceNumber = ServerFrameConstants::INITIAL_SEQUENCE;             
+    uint8_t s_nonce[NONCE_SIZE];           
+    uint16_t s_payloadLength;      
+    uint8_t s_encryptedPayload[ENCRYPT_PAYLOAD_SIZE];
+    uint8_t s_authTag[AUTH_TAG_SIZE];     
     uint16_t s_endMarker;
 } ServerFrameData;
 }
@@ -57,6 +59,7 @@ class ServerFrame
 private:
     std::shared_ptr<Handshake::HandshakeFrameData> m_handshakeFrame;
     std::shared_ptr<DataFrame::ServerFrameData> m_serverDataFrame;
+    std::shared_ptr<Cryptography::Ascon128a> m_ascon128a;
     uint16_t m_dataLength;
     uint16_t m_crcReceive;
     std::vector<uint8_t> m_frameBuffer;
@@ -66,6 +69,7 @@ private:
     int m_safeCounter = 0;
     int sequenceNumber = 100;
     std::vector<unsigned char> m_secretKeyComputed;
+    std::vector<unsigned char> m_presharedKeyForAuthTag = {0xA1, 0xB2, 0xC3, 0xD4, 0xE5, 0xF6, 0x07, 0x18, 0x29, 0x3A, 0x4B, 0x5C, 0x6D, 0x7E, 0x8F, 0x90};
 public:
     /**
      * @brief Constructor of UartFrame
@@ -105,7 +109,8 @@ public:
      */
     void constructServerDataFrame(const std::vector<unsigned char>& nonce, 
                                 unsigned long long cipherTextLength, 
-                                const std::vector<unsigned char>& cipherText);
+                                const std::vector<unsigned char>& cipherText,
+                                const std::vector<unsigned char>& authTag);
 
     /**
      * @brief increase sequence number for each transmission
@@ -118,7 +123,8 @@ public:
     void sendDataFrameToServer(std::shared_ptr<MQTT> mqtt,
                              const std::vector<unsigned char>& nonce,
                              unsigned long long ciphertextLength,
-                             const std::vector<unsigned char>& ciphertext);
+                             const std::vector<unsigned char>& ciphertext,
+                             const std::vector<unsigned char>& authTag);
     
     /**
      * @brief return sequence number
