@@ -1,10 +1,22 @@
 #ifndef SETUP_NUMBER_HELPER_HPP
 #define SETUP_NUMBER_HELPER_HPP
 
-#define __AIOT_FOR_MEDTECH_DESLAB__ delay(500)
+#define __AIOT_FOR_MEDTECH_DESLAB__ delay(1000)
 #define __SLIGHT_DELAY__ delay(1)
+#define __NORMAL_DELAY__ delay(10)
+#define __LONG_DELAY__ delay(30)
+#define __VERY_LONG_DELAY__ delay(100)
 #define __WAIT_STATE_FOR_SERVER_PROCESSING_KEY__ delay(10)
 #define IDENTIFIER_ID_STM_SIZE 4
+
+#define MAX_FREQUENCY 240
+#define NORMAL_FREQUENCY 80
+#define LOW_FREQUENCY 40
+#define METRICS_SIZE 2
+
+#define MILI_MINUTE 60000
+#define MILI_HALF_MINUTE 30000
+#define VERY_FAST_MILI 10000
 
 #pragma once
 

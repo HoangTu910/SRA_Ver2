@@ -143,6 +143,7 @@ bool Transmissions::startTransmissionProcess()
             m_uart->resetFrameBuffer();
             break;
         }
+        
         /*
         case TransmissionState::PROCESS_ENCRYPTION:{
             PLAT_LOG_D(__FMT_STR__, "[3/5] Skipping encryption step...");
@@ -160,6 +161,7 @@ bool Transmissions::startTransmissionProcess()
             break;
         }
         */
+
         case TransmissionState::SEND_DATA_TO_SERVER:
         {
             PLAT_LOG_D(__FMT_STR__, "[3/4] Construct and send data to server...");
@@ -218,6 +220,7 @@ bool Transmissions::startTransmissionProcess()
         {
             PLAT_LOG_D(__FMT_STR__, "[DAMN] Transmission error");
             handleTransmissionError();
+            __AIOT_FOR_MEDTECH_DESLAB__;
             return false;
             break;
         }
@@ -225,6 +228,7 @@ bool Transmissions::startTransmissionProcess()
         {
             PLAT_LOG_D(__FMT_STR__, "[NICE] Transmission completed!");
             resetTransmissionState();
+            __AIOT_FOR_MEDTECH_DESLAB__;
             return true;
             break;
         }
