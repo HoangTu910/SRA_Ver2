@@ -75,4 +75,12 @@ public:
      * @brief Loop the MQTT connection
      */
     void loopMqtt();
+
+    std::shared_ptr<Transmission::ServerFrame::ServerFrame> getServer() {
+        return m_server;
+    }
+    
+    std::shared_ptr<MQTT> getMqtt() {
+        return m_mqtt;
+    }
 };
