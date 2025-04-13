@@ -16,7 +16,7 @@ typedef struct IGNORE_PADDING MetricsFrame
     uint16_t str_header;
     uint32_t str_identifierId;
     uint8_t str_packetType;
-    uint8_t str_metrics[METRICS_SIZE];
+    uint32_t str_metrics[METRICS_SIZE];
     uint16_t str_trailer;
 } MetricsFrame;
 
@@ -38,22 +38,42 @@ void publishMetrics(std::shared_ptr<MQTT> &m_mqtt) {
         return;
     }
 
-    MetricsFrame frame;
+    // Create a buffer to hold the serialized data
+    std::vector<uint8_t> buffer;
+    buffer.reserve(sizeof(MetricsFrame));
+
+    uint16_t header = SERVER_FRAME_PREAMBLE;
+    buffer.insert(buffer.end(), (uint8_t*)&header, (uint8_t*)&header + sizeof(header));
     
-    frame.str_header = SERVER_FRAME_PREAMBLE;
-    frame.str_packetType = SERVER_FRAME_PACKET_METRICS_TYPE;
-    frame.str_identifierId = SERVER_FRAME_IDENTIFIER_ID;
+    uint32_t id = SERVER_FRAME_IDENTIFIER_ID;
+    buffer.insert(buffer.end(), (uint8_t*)&id, (uint8_t*)&id + sizeof(id));
+    
+    uint8_t packetType = SERVER_FRAME_PACKET_METRICS_TYPE;
+    buffer.push_back(packetType);
 
     int totalPackets = packetSuccess + packetLoss;
     float pdr = totalPackets > 0 ? (float)packetSuccess / totalPackets * 100 : 0;
     float avgLatency = packetSuccess > 0 ? totalTime / packetSuccess : 0;
+    float packetsPerMin = static_cast<float>(packetsThisMinute);
 
-    frame.str_metrics[0] = (uint8_t)(pdr); 
-    frame.str_metrics[1] = (uint8_t)(avgLatency); 
-    
-    frame.str_trailer = SERVER_FRAME_END_MAKER;
-    
-    m_mqtt->publishData((uint8_t*)&frame, sizeof(MetricsFrame));
+    // Convert floats to network byte order
+    uint32_t pdrInt = htonl(*reinterpret_cast<uint32_t*>(&pdr));
+    uint32_t latencyInt = htonl(*reinterpret_cast<uint32_t*>(&avgLatency));
+    uint32_t packetsInt = htonl(*reinterpret_cast<uint32_t*>(&packetsPerMin));
+
+    // Add metrics
+    buffer.insert(buffer.end(), (uint8_t*)&pdrInt, (uint8_t*)&pdrInt + sizeof(pdrInt));
+    buffer.insert(buffer.end(), (uint8_t*)&latencyInt, (uint8_t*)&latencyInt + sizeof(latencyInt));
+    buffer.insert(buffer.end(), (uint8_t*)&packetsInt, (uint8_t*)&packetsInt + sizeof(packetsInt));
+
+    uint16_t trailer = SERVER_FRAME_END_MAKER;
+    buffer.insert(buffer.end(), (uint8_t*)&trailer, (uint8_t*)&trailer + sizeof(trailer));
+
+    // Publish serialized data
+    m_mqtt->publishData(buffer.data(), buffer.size());
+
+    PLAT_LOG_D("Metrics sent - PDR: %.2f, Latency: %.2f, Packets: %.0f", 
+               pdr, avgLatency, packetsPerMin);
 }
 
 void setup() {

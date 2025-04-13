@@ -3,12 +3,14 @@
 
 namespace WifiHelper
 {
-    
+    char* SSID = (char*)"your_wifi_ssid";
+    char* PASSWORD = (char*)"your_wifi_password";
+    int WIFI_TIMEOUT = 5000;
 }
 
 namespace MQTTHelper
 {   
-    char* MQTT_SERVER = (char*)"192.168.1.2";
+    char* MQTT_SERVER = (char*)"192.168.1.24";
     int MQTT_PORT = 1885;
     char* MQTT_USER = (char*)"admin";
     char* MQTT_PASSWORD = (char*)"123";
