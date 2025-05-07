@@ -69,7 +69,7 @@ public:
     /**
      * @brief update sequence number when receive signal from server
      */
-    void updateSequenceNumber();
+    void updateSequenceNumber(std::shared_ptr<Transmission::ServerFrame::ServerFrame> &server);
 
     /**
      * @brief Loop the MQTT connection

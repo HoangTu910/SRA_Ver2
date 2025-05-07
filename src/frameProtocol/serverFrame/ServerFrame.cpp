@@ -67,16 +67,17 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
             {
                 std::vector<unsigned char> associatedData = {0x48, 0x45, 0x4C, 0x4C, 0x4F};
                 std::vector<unsigned char> smallPlaintext = {};
+                auto startTime_ = std::chrono::high_resolution_clock::now();
                 m_ascon128a->setAssociatedData(associatedData);
                 m_ascon128a->setNonce();
                 m_ascon128a->setPlainText(smallPlaintext); 
                 m_ascon128a->setKey(m_ascon128a->getPresharedSecretKey());
                 
-                auto startTime = std::chrono::high_resolution_clock::now();
+                // auto startTime = std::chrono::high_resolution_clock::now();
                 m_ascon128a->encrypt();
-                auto endTime = std::chrono::high_resolution_clock::now();
-                double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-                PLAT_LOG_D("-- Auth tag generated (Ascon-128a) in %.2f ms", elapsedTime);
+                // auto endTime = std::chrono::high_resolution_clock::now();
+                // double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                // PLAT_LOG_D("-- Auth tag generated (Ascon-128a) in %.2f ms", elapsedTime);
                 
                 m_handshakeFrame->s_preamble = SERVER_FRAME_PREAMBLE;
                 m_handshakeFrame->s_identifierId = SERVER_FRAME_IDENTIFIER_ID;
@@ -95,7 +96,10 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
                 if (ECC_PUB_KEY_SIZE > 0) {
                     std::copy(ECDH::devicePublicKey, ECDH::devicePublicKey + ECC_PUB_KEY_SIZE, m_handshakeFrame->s_publicKey);
                 }
-                PLAT_LOG_D(__FMT_STR__, "-- Contructed public key frame");
+                auto endTime_ = std::chrono::high_resolution_clock::now();
+                double elapsedTime_ = std::chrono::duration<double, std::milli>(endTime_ - startTime_).count();
+
+                PLAT_LOG_D("-- Contructed public key frame in %.2f ms", elapsedTime_);
                 m_handshakeNextState = HandshakeState::SEND_PUBLIC_KEY_FRAME;
                 break;
             }
@@ -163,7 +167,11 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
                         return;
                     }
 
-                    PLAT_LOG_D(__FMT_STR__, "-- Shared secret computed successfully");
+                    PLAT_LOG_ED(__FMT_STR__, "-- Shared secret computed successfully ");
+                    for(int i = 0; i < 16; i++) {
+                        PLAT_LOG_ED("%02X ", m_secretKeyComputed[i]);
+                    }
+                    PLAT_LOG_ED("\n");
                     m_handshakeNextState = HandshakeState::HANDSHAKE_COMPLETE;
                 }
                 catch (const std::exception& e) {
@@ -196,6 +204,7 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(const std:
 {
     // Set frame header fields
     PLAT_LOG_D(__FMT_STR__, "-- Constructing server data frame");
+    auto startTime = std::chrono::steady_clock::now();
     m_serverDataFrame->s_preamble = SERVER_FRAME_PREAMBLE;
     m_serverDataFrame->s_identifierId = SERVER_FRAME_IDENTIFIER_ID;  
     m_serverDataFrame->s_packetType = SERVER_FRAME_PACKET_DATA_TYPE;
@@ -226,6 +235,9 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(const std:
     }
 
     m_serverDataFrame->s_endMarker = SERVER_FRAME_END_MAKER;
+    auto endTime = std::chrono::steady_clock::now();
+    double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+    PLAT_LOG_D("-- Server data frame constructed in %.4f ms", elapsedTime);
 }
 
 void Transmission::ServerFrame::ServerFrame::currentSequenceNumber()
@@ -244,7 +256,19 @@ void Transmission::ServerFrame::ServerFrame::sendDataFrameToServer(std::shared_p
 {
     // PLAT_LOG_D("-- Frame buffer size: %d", ciphertextLength);
     constructServerDataFrame(nonce, ciphertextLength, ciphertext, authTag);
+    // for(int i = 0; i < 16; i++) {
+    //     PLAT_LOG_ED("%02X", ciphertext[i]);
+    // }
+    // PLAT_LOG_ED("\n");
+    // for(int i = 0; i < 16; i++) {
+    //     PLAT_LOG_ED("%02X", nonce[i]);
+    // }
+    // PLAT_LOG_ED("\n");
+    auto startTime = std::chrono::steady_clock::now();
     mqtt->publishData(m_serverDataFrame.get(), sizeof(DataFrame::ServerFrameData));
+    auto endTime = std::chrono::steady_clock::now();
+    double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+    PLAT_LOG_D("-- Sent server data frame to server in %.4f ms", elapsedTime);
 }
 
 int16_t Transmission::ServerFrame::ServerFrame::getSequenceNumber()

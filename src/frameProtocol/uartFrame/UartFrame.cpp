@@ -397,7 +397,11 @@ bool UartFrame::update()
     }
 
     // PLAT_LOG_D("[==FRAME STATE==] Frame buffer size: %d", m_frameReceiveBuffer.size());
+    auto startParseTime = std::chrono::high_resolution_clock::now();
     bool isParseProcessComplete = parseFrame(m_frameReceiveBuffer);
+    auto endParseTime = std::chrono::high_resolution_clock::now();
+    double elapsedParseTime = std::chrono::duration<double, std::milli>(endParseTime - startParseTime).count();
+    PLAT_LOG_D("-- Frame parsing completed in %.2f ms", elapsedParseTime);
 
     resetStateMachine();
     return isParseProcessComplete;

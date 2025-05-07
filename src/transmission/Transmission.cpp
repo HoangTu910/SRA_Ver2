@@ -55,7 +55,7 @@ bool Transmissions::startTransmissionProcess()
     switch(m_transmissionNextState)
     {
         case TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE:{
-            PLAT_LOG_D(__FMT_STR__, "[1/4] Checking key...");
+            PLAT_LOG_D(__FMT_STR__, "[1/5] Checking key...");
             if(m_server->getSequenceNumber() == ServerFrameConstants::RESET_SEQUENCE || 
                 m_server->getSequenceNumber() == ServerFrameConstants::INITIAL_SEQUENCE){  
                 PLAT_LOG_D(__FMT_STR__, "-- Key Expired! Renewing...");
@@ -80,7 +80,8 @@ bool Transmissions::startTransmissionProcess()
                 PLAT_LOG_D("-- Handshake for key exchanging completed in %.2f ms", elapsedTime);
 
                 /* Encrypt secret key before transmitting to STM32*/
-                std::vector<unsigned char> associatedData = {0x48, 0x45, 0x4C, 0x4C, 0x4F};
+                std::vector<unsigned char> associatedData = {0x98, 0x95, 0x9C, 0x9C, 0x9F};
+                auto startTime_ = std::chrono::high_resolution_clock::now();
                 m_ascon128a->setAssociatedData(associatedData);
                 m_ascon128a->setNonce();
                 m_ascon128a->setPlainText(m_server->getSecretKeyComputed());
@@ -95,30 +96,64 @@ bool Transmissions::startTransmissionProcess()
                 /* Construct frame for transmitting key to STM32 */
                 PLAT_LOG_D(__FMT_STR__, "-- Construct frame key to STM32...");
                 m_uart->constructFrameForTransmittingKeySTM32(m_uart->m_stm32FrameParams);
+                auto endTime_ = std::chrono::high_resolution_clock::now();
+                double elapsedTime_ = std::chrono::duration<double, std::milli>(endTime_ - startTime_).count();
+                PLAT_LOG_D("-- Frame constructed in %.2f ms", elapsedTime_);
                 PLAT_LOG_D(__FMT_STR__, "-- Transmitting key to STM32...");
-                m_uart->transmitData(*m_uart->getUartFrameSTM32()); // pass * to get data
 
+                auto startTransmitTime = std::chrono::high_resolution_clock::now();
+                m_uart->transmitData(*m_uart->getUartFrameSTM32()); // pass * to get data
+                auto endTransmitTime = std::chrono::high_resolution_clock::now();
+                auto elapsedTransmitTime = std::chrono::duration<double, std::milli>(endTransmitTime - startTransmitTime).count();
+                PLAT_LOG_D("-- Transmit key to STM32 completed in %.2f ms", elapsedTransmitTime);
+                
                 m_handshakeProcessTime += elapsedTime;
                 m_server->resetHandshakeState();
             }
             else {
                 PLAT_LOG_D(__FMT_STR__, "-- Key is still valid");
-                auto startTime = std::chrono::high_resolution_clock::now();
-                auto endTime = std::chrono::high_resolution_clock::now();
-                PLAT_LOG_D(__FMT_STR__, "-- Constructing frame for transmitting trigger signal to STM32...");
-                m_uart->constructFrameForTransmittingTriggerSignal(m_ascon128a->getAssociatedData());
-                PLAT_LOG_D(__FMT_STR__, "-- Transmiting trigger signal to STM32");
-                m_uart->transmitData(*m_uart->getUartFrameSTM32Trigger()); // pass * to get data
+                // auto startTime = std::chrono::high_resolution_clock::now();
+                // auto endTime = std::chrono::high_resolution_clock::now();
+                // PLAT_LOG_D(__FMT_STR__, "-- Constructing frame for transmitting trigger signal to STM32...");
+                // m_uart->constructFrameForTransmittingTriggerSignal(m_ascon128a->getAssociatedData());
+                // PLAT_LOG_D(__FMT_STR__, "-- Transmiting trigger signal to STM32");
+                
+                // auto startTime_ = std::chrono::high_resolution_clock::now();
+                // m_uart->transmitData(*m_uart->getUartFrameSTM32Trigger()); // pass * to get data
+                // auto endTime_ = std::chrono::high_resolution_clock::now();
+                // auto elapsedTime_ = std::chrono::duration<double, std::milli>(endTime_ - startTime_).count();
+                // PLAT_LOG_D("-- Transmit trigger signal to STM32 completed in %.2f ms", elapsedTime_);
 
-                double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-                m_handshakeProcessTime += elapsedTime;
+                // double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                // m_handshakeProcessTime += elapsedTime;
             }
+            m_transmissionNextState = TransmissionState::TRIGGER_SIGNAL;
+            // __VERY_LONG_DELAY__;
+            break;
+        }
+
+        case TransmissionState::TRIGGER_SIGNAL:{
+            PLAT_LOG_D(__FMT_STR__, "[2/5] Transmitting trigger signal to STM32...");
+            auto startTime = std::chrono::high_resolution_clock::now();
+            auto endTime = std::chrono::high_resolution_clock::now();
+            PLAT_LOG_D(__FMT_STR__, "-- Constructing frame for transmitting trigger signal to STM32...");
+            m_uart->constructFrameForTransmittingTriggerSignal(m_ascon128a->getAssociatedData());
+            PLAT_LOG_D(__FMT_STR__, "-- Transmiting trigger signal to STM32");
+            
+            auto startTime_ = std::chrono::high_resolution_clock::now();
+            m_uart->transmitData(*m_uart->getUartFrameSTM32Trigger()); // pass * to get data
+            auto endTime_ = std::chrono::high_resolution_clock::now();
+            auto elapsedTime_ = std::chrono::duration<double, std::milli>(endTime_ - startTime_).count();
+            PLAT_LOG_D("-- Transmit trigger signal to STM32 completed in %.2f ms", elapsedTime_);
+
+            double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+            m_handshakeProcessTime += elapsedTime;
             m_transmissionNextState = TransmissionState::PROCESS_FRAME_PARSING;
             break;
         }
     
         case TransmissionState::PROCESS_FRAME_PARSING:{
-            PLAT_LOG_D(__FMT_STR__, "[2/4] Frame processing...");
+            PLAT_LOG_D(__FMT_STR__, "[3/5] Frame processing...");
             auto startTime = std::chrono::high_resolution_clock::now();
             bool isUpdateAndParsingComplete = m_uart->update();
             if(isUpdateAndParsingComplete)
@@ -164,7 +199,7 @@ bool Transmissions::startTransmissionProcess()
 
         case TransmissionState::SEND_DATA_TO_SERVER:
         {
-            PLAT_LOG_D(__FMT_STR__, "[3/4] Construct and send data to server...");
+            PLAT_LOG_D(__FMT_STR__, "[4/5] Construct and send data to server...");
             auto startTime = std::chrono::high_resolution_clock::now();
             m_server->sendDataFrameToServer(m_mqtt, 
                                             m_nonce,
@@ -180,7 +215,7 @@ bool Transmissions::startTransmissionProcess()
         }
         case TransmissionState::WAIT_FOR_ACK_PACKAGE:
         {
-            PLAT_LOG_D(__FMT_STR__, "[4/4] Waiting for ACK package...");
+            PLAT_LOG_D(__FMT_STR__, "[5/5] Waiting for ACK package...");
             auto startTime = std::chrono::high_resolution_clock::now();
             int packetStatus = m_server->isPacketFromServerReached(m_mqtt);
             if(packetStatus == ServerFrameConstants::SERVER_RECEIVE_ACK){
@@ -198,19 +233,19 @@ bool Transmissions::startTransmissionProcess()
                 m_ackResponseTime += elapsedTime;
                 m_transmissionNextState = TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE; //start again the process
                 PLAT_LOG_D("-- Updating sequence number %.2f ms", elapsedTime);
-                updateSequenceNumber();
+                updateSequenceNumber(m_server);
             }
             else if(m_mqtt->m_mqttIsTimeout){
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-                m_server->resetSequenceNumber();
+                // m_server->resetSequenceNumber();
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
                 PLAT_LOG_D("-- OH FUKK where is ACK? -_- (Timeout after %.2f ms)", elapsedTime);
             }
             else{
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-                m_server->resetSequenceNumber();
+                // m_server->resetSequenceNumber();
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
                 PLAT_LOG_D("-- OH FUKK what did you send? -_- (Failed after %.2f ms)", elapsedTime);
             }
@@ -236,11 +271,11 @@ bool Transmissions::startTransmissionProcess()
     return false;
 }
 
-void Transmissions::updateSequenceNumber()
+void Transmissions::updateSequenceNumber(std::shared_ptr<Transmission::ServerFrame::ServerFrame> &server)
 {
-    int safeCounter = m_server->getSafeCounter();
+    int safeCounter = server->getSafeCounter();
     PLAT_LOG_D("-- Safe counter used for updating sequence: %d", safeCounter);
-    const std::vector<uint8_t>& secretKey = m_server->getSecretKeyComputed();  
+    const std::vector<uint8_t>& secretKey = server->getSecretKeyComputed();  
 
     uint16_t secretKeyNum = 0;
 
@@ -249,7 +284,7 @@ void Transmissions::updateSequenceNumber()
     }
 
     int expectedSequenceNumber = (safeCounter ^ secretKeyNum) % 65536;
-    m_server->setSequenceNumber(expectedSequenceNumber - 1);
+    server->setSequenceNumber(expectedSequenceNumber - 1);
 
     PLAT_LOG_D("-- Sequence number updated to %d", expectedSequenceNumber);
 }
