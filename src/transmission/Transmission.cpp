@@ -137,7 +137,8 @@ bool Transmissions::startTransmissionProcess()
             auto startTime = std::chrono::high_resolution_clock::now();
             auto endTime = std::chrono::high_resolution_clock::now();
             PLAT_LOG_D(__FMT_STR__, "-- Constructing frame for transmitting trigger signal to STM32...");
-            m_uart->constructFrameForTransmittingTriggerSignal(m_ascon128a->getAssociatedData());
+            if(m_isTransmissionSucceed) m_uart->constructFrameForTransmittingTriggerSignal(m_ascon128a->getAssociatedData(), UARTCommand::SIGNAL);
+            else m_uart->constructFrameForTransmittingTriggerSignal(m_ascon128a->getAssociatedData(), UARTCommand::FAILED);
             PLAT_LOG_D(__FMT_STR__, "-- Transmiting trigger signal to STM32");
             
             auto startTime_ = std::chrono::high_resolution_clock::now();
@@ -173,6 +174,7 @@ bool Transmissions::startTransmissionProcess()
             else{
                 m_isFrameParsing = false;
                 m_transmissionNextState = TransmissionState::TRANSMISSION_ERROR;
+                __VERY_LONG_DELAY__;
                 PLAT_LOG_D(__FMT_STR__, "-- OH FUKK what did you send? -_-");
             }
             m_uart->resetFrameBuffer();
@@ -200,6 +202,7 @@ bool Transmissions::startTransmissionProcess()
         case TransmissionState::SEND_DATA_TO_SERVER:
         {
             PLAT_LOG_D(__FMT_STR__, "[4/5] Construct and send data to server...");
+            PLAT_LOG_D("Safe counter current: %d", m_safeCounter);
             auto startTime = std::chrono::high_resolution_clock::now();
             m_server->sendDataFrameToServer(m_mqtt, 
                                             m_nonce,
@@ -222,7 +225,7 @@ bool Transmissions::startTransmissionProcess()
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_ackResponseTime += elapsedTime;
-                m_safeCounter = (m_safeCounter + ((m_safeCounter << 3) ^ (m_safeCounter >> 2) ^ 7)) % 65536;
+                m_safeCounter = (m_safeCounter + ((m_safeCounter << 3) ^ (m_safeCounter >> 2) ^ 7)) % 256;
                 m_server->setSafeCounter(m_safeCounter);
                 m_transmissionNextState = TransmissionState::TRANSMISSION_COMPLETE;
                 PLAT_LOG_D("-- Received ACK package from server in %.2f ms", elapsedTime);
@@ -255,6 +258,7 @@ bool Transmissions::startTransmissionProcess()
         {
             PLAT_LOG_D(__FMT_STR__, "[DAMN] Transmission error");
             handleTransmissionError();
+            m_isTransmissionSucceed = false;
             __AIOT_FOR_MEDTECH_DESLAB__;
             return false;
             break;
@@ -262,6 +266,7 @@ bool Transmissions::startTransmissionProcess()
         case TransmissionState::TRANSMISSION_COMPLETE:
         {
             PLAT_LOG_D(__FMT_STR__, "[NICE] Transmission completed!");
+            m_isTransmissionSucceed = true;
             resetTransmissionState();
             __AIOT_FOR_MEDTECH_DESLAB__;
             return true;
@@ -283,7 +288,7 @@ void Transmissions::updateSequenceNumber(std::shared_ptr<Transmission::ServerFra
         secretKeyNum ^= secretKey[i] << ((i % 2) * 8);  
     }
 
-    int expectedSequenceNumber = (safeCounter ^ secretKeyNum) % 65536;
+    int expectedSequenceNumber = (safeCounter ^ secretKeyNum) % MAX_SEQUENCE_NUMBER;
     server->setSequenceNumber(expectedSequenceNumber - 1);
 
     PLAT_LOG_D("-- Sequence number updated to %d", expectedSequenceNumber);
@@ -292,4 +297,12 @@ void Transmissions::updateSequenceNumber(std::shared_ptr<Transmission::ServerFra
 void Transmissions::loopMqtt()
 {
     m_mqtt->connect();
+}
+
+void Transmissions::setSafeCounter(int safeCounter) {
+    m_safeCounter = safeCounter;
+}
+
+std::shared_ptr<Transmission::UartFrame::UartFrame> Transmissions::getUart() {
+    return m_uart;
 }

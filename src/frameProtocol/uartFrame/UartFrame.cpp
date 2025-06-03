@@ -11,6 +11,7 @@ UartFrame::UartFrame()
     resetStateMachine();
     m_uartFrameSTM32 = std::make_shared<UartFrameSTM32>();
     m_uartFrameSTM32Trigger = std::make_shared<UartFrameSTM32Trigger>();
+    m_uartFrameSTM32Init = std::make_shared<UartFrameSTM32Init>();
 }
 
 UartFrame::~UartFrame()
@@ -159,6 +160,9 @@ bool UartFrame::isFirstHeaderByteValid(uint8_t byteFrame)
             return false;
         case UartFrameConstants::UART_FRAME_DECRYPTION_FAILED:
             PLAT_LOG_D(__FMT_STR__, "[DECRYPTION FAILED FRAME ERROR]");
+            return false;
+        case UartFrameConstants::UART_FRAME_WRONG_PACKET_TYPE:
+            PLAT_LOG_D(__FMT_STR__, "[WRONG_PACKET_TYPE]");
             return false;
         default:
             PLAT_LOG_D("[HEADER_1 FAILED] actual: %d, expect: %d",
@@ -365,7 +369,9 @@ std::vector<uint8_t> UartFrame::getFrameBuffer()
 void UartFrame::beginUartCommunication()
 {
     m_uart->begin(Serial::BAUD_RATE, SERIAL_8N1, Serial::TX_PIN, Serial::RX_PIN);
-    PLAT_LOG_D(__FMT_STR__, "UART initialized");
+    m_uart->flush();
+    PLAT_LOG_D(__FMT_STR__, "-- UART initialized");
+    __LONG_DELAY__;
 }
 
 bool UartFrame::update()
@@ -437,18 +443,36 @@ void UartFrame::constructFrameForTransmittingKeySTM32(const STM32FrameParams& pa
     }
 }
 
-void UartFrame::constructFrameForTransmittingTriggerSignal(std::vector<uint8_t> associatedData)
+void UartFrame::constructFrameForTransmittingTriggerSignal(std::vector<uint8_t> associatedData, uint8_t command)
 {
     try {
         m_uartFrameSTM32Trigger->str_header[0] = UartFrameConstants::UART_FRAME_HEADER_1;
         m_uartFrameSTM32Trigger->str_header[1] = UartFrameConstants::UART_FRAME_HEADER_2;
         std::copy(IdentifierIDSTM, IdentifierIDSTM + IDENTIFIER_ID_STM_SIZE, m_uartFrameSTM32Trigger->str_identifierId);
-        m_uartFrameSTM32Trigger->str_triggerSignal = UARTCommand::SIGNAL;
+        m_uartFrameSTM32Trigger->str_triggerSignal = command;
+        PLAT_LOG_D("-- Command: %d", command);
         std::copy(associatedData.begin(), associatedData.begin() + AAD_MAX_SIZE, m_uartFrameSTM32Trigger->str_add);
         m_uartFrameSTM32Trigger->str_addLength[0] = associatedData.size() & 0xFF; // LSB
         m_uartFrameSTM32Trigger->str_addLength[1] = (associatedData.size() >> 8) & 0xFF; // MSB
         m_uartFrameSTM32Trigger->str_eof[0] = UartFrameConstants::UART_FRAME_TRAILER_1;
         m_uartFrameSTM32Trigger->str_eof[1] = UartFrameConstants::UART_FRAME_TRAILER_2;
+        // PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting trigger signal to STM32");
+    }
+    catch (const std::exception& e) {
+        PLAT_LOG_D("[ERROR] Exception in constructFrameForTransmittingKeySTM32: %s", e.what());
+    }
+}
+
+void UartFrame::constructFrameForTransmittingInititalData(std::vector<uint8_t> data)
+{
+    try {
+        m_uartFrameSTM32Init->str_header[0] = UartFrameConstants::UART_FRAME_HEADER_1;
+        m_uartFrameSTM32Init->str_header[1] = UartFrameConstants::UART_FRAME_HEADER_2;
+        std::copy(IdentifierIDSTM, IdentifierIDSTM + IDENTIFIER_ID_STM_SIZE, m_uartFrameSTM32Init->str_identifierId);
+        m_uartFrameSTM32Init->str_packetType = UARTCommand::INITIAL;
+        std::copy(data.begin(), data.begin() + AAD_MAX_SIZE, m_uartFrameSTM32Init->str_data);
+        m_uartFrameSTM32Init->str_eof[0] = UartFrameConstants::UART_FRAME_TRAILER_1;
+        m_uartFrameSTM32Init->str_eof[1] = UartFrameConstants::UART_FRAME_TRAILER_2;
         // PLAT_LOG_D(__FMT_STR__, "-- Constructed frame for transmitting trigger signal to STM32");
     }
     catch (const std::exception& e) {
@@ -488,5 +512,6 @@ std::shared_ptr<UartFrame> UartFrame::create()
 {
     return std::make_shared<UartFrame>();
 }
+
 }
 } // namespace Transmission::UartFrame

@@ -56,6 +56,7 @@ public:
 
     bool publishData(const void *data, size_t dataLength);
     bool publishMetricsData(const void *data, size_t dataLength);
+    bool publishInitSessionData(const void *data, size_t dataLength);
     
     static std::shared_ptr<MQTT> create(
         char *mqttServer, 

@@ -57,6 +57,14 @@ void MQTT::callBack(char *topic, byte *payload, unsigned int length)
         snprintf(hex, sizeof(hex), "%02X ", m_mqttCallBackDataReceive[i]); // Format as hex
         hexStr += hex;
     }
+    // PLAT_LOG_D("-- Message arrived %s", hexStr.c_str());
+    // PLAT_LOG_D("-- Length: %d", length);
+
+    if (length == 0) {
+        PLAT_LOG_D(__FMT_STR__, "-- Ignoring empty payload");
+        return;
+    }
+
     if(length == 1 && payload[0] == ServerFrameConstants::SERVER_FRAME_PACKET_ACK_TYPE){
         // PLAT_LOG_D("ACK package arrived [%d]", payload[0]);
         m_mqttIsAckPackageArrived = true;
@@ -68,7 +76,6 @@ void MQTT::callBack(char *topic, byte *payload, unsigned int length)
     else{
         m_mqttIsMessageArrived = true;
     }
-    // PLAT_LOG_D("Message arrived [%s]", hexStr.c_str());
 }
 
 void MQTT::connect()
@@ -92,7 +99,9 @@ void MQTT::reconnect()
         if(m_client.connect("ESP32Client", m_mqttUser, m_mqttPassword))
         {
             PLAT_LOG_D("%s", "MQTT Connected");
-            m_client.subscribe(m_mqttPublicKeyReceiveTopic);
+            m_client.subscribe(m_mqttPublicKeyReceiveTopic); 
+            PLAT_LOG_D("Subscribed to topics: %s", 
+                      m_mqttPublicKeyReceiveTopic);
         }
         else
         {
@@ -116,6 +125,23 @@ bool MQTT::publishData(const void *data, size_t dataLength)
     }
     try {
         bool result = m_client.publish(m_mqttPublicKeyTopic, (const uint8_t *)data, dataLength);
+        PLAT_LOG_D(__FMT_STR__, result ? "-- Publish succeeded" : "-- Publish failed");
+        return result;
+    } catch (const std::exception& e) {
+        PLAT_LOG_D("Publish exception: %s", e.what());
+        return false;
+    }
+}
+
+bool MQTT::publishInitSessionData(const void *data, size_t dataLength)
+{
+    if (!data) {
+        PLAT_LOG_D(__FMT_STR__, "-- Error: publishData received null data");
+        return false;
+    }
+    try {
+        const char *topic = "init/session";
+        bool result = m_client.publish(topic, (const uint8_t *)data, dataLength);
         PLAT_LOG_D(__FMT_STR__, result ? "-- Publish succeeded" : "-- Publish failed");
         return result;
     } catch (const std::exception& e) {

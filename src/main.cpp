@@ -10,6 +10,7 @@
 #include "communication/Wifi.hpp"
 #include "setupConfiguration/utils.hpp"
 #include "transmission/Transmissions.hpp"
+#include "InitSession.hpp"
 
 typedef struct IGNORE_PADDING MetricsFrame
 {
@@ -30,6 +31,7 @@ int packetSuccess = 0;
 int packetLoss = 0;
 double totalTime = 0;
 int packetsThisMinute = 0;
+bool ok = false;
 auto startTime = std::chrono::high_resolution_clock::now();
 
 void publishMetrics(std::shared_ptr<MQTT> &m_mqtt) {
@@ -40,15 +42,13 @@ void publishMetrics(std::shared_ptr<MQTT> &m_mqtt) {
 
     // Create a buffer to hold the serialized data
     std::vector<uint8_t> buffer;
-    buffer.reserve(sizeof(MetricsFrame));
-
-    uint16_t header = SERVER_FRAME_PREAMBLE;
-    buffer.insert(buffer.end(), (uint8_t*)&header, (uint8_t*)&header + sizeof(header));
-    
-    uint32_t id = SERVER_FRAME_IDENTIFIER_ID;
-    buffer.insert(buffer.end(), (uint8_t*)&id, (uint8_t*)&id + sizeof(id));
-    
     uint8_t packetType = SERVER_FRAME_PACKET_METRICS_TYPE;
+    uint32_t id = SERVER_FRAME_IDENTIFIER_ID;
+    uint16_t header = SERVER_FRAME_PREAMBLE;
+
+    buffer.reserve(sizeof(MetricsFrame));
+    buffer.insert(buffer.end(), (uint8_t*)&header, (uint8_t*)&header + sizeof(header));
+    buffer.insert(buffer.end(), (uint8_t*)&id, (uint8_t*)&id + sizeof(id));
     buffer.push_back(packetType);
 
     int totalPackets = packetSuccess + packetLoss;
@@ -80,9 +80,44 @@ void setup() {
     setCpuFrequencyMhz(MAX_FREQUENCY);
     Serial.begin(Serial::BAUD_RATE);
     wifi->connect();
+    controller->loopMqtt();
+
+    auto initSession = InitSession::InitSession::create();
+    
+    if (!initSession) {
+        PLAT_LOG_D(__FMT_STR__, "-- Error: Failed to create InitSession instance");
+        return;
+    }
+    
+    if(!initSession->sendInitSessionFrame(controller->getMqtt())) {
+        PLAT_LOG_D(__FMT_STR__, "-- Error: Failed to send initial session frame");
+        ok = false;
+        return;
+    }
+    if(!initSession->isInitialDataFromServerReached(controller->getMqtt())) {
+        PLAT_LOG_D(__FMT_STR__, "-- Error: Initial data from server not received");
+        ok = false;
+        return;
+    }
+    
+    PLAT_LOG_D(__FMT_STR__, "-- Fetching safe counter...");
+    int fetchSafeCounter = initSession->fetchSafeCounter(controller->getMqtt());
+    controller->setSafeCounter(fetchSafeCounter);
+    PLAT_LOG_D("-- Safe Counter: %d", fetchSafeCounter);
+    ok = true;
+
+    initSession->sendDeriviationIndexUart(controller->getMqtt(), controller->getUart()); //comment hàm này thì chạy được
+
+    PLAT_LOG_D(__FMT_STR__, "-- Init Completed. Wait for system to be stable...");
+    __VERY_LONG_DELAY__;
 }
 
 void loop() {
+    if(!ok) {
+        PLAT_LOG_D(__FMT_STR__, "-- Error: Initialization failed, press RESET to try again");
+        FOREVER_LOOP;
+        return;
+    }
     controller->loopMqtt();
 
     if (controller->m_transmissionNextState == TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE) {

@@ -19,6 +19,7 @@ private:
     bool m_isHandshake = false;
     int m_countPacket = 0;
     int m_safeCounter = 0;
+    bool m_isTransmissionSucceed = true;
 public:
     TransmissionState m_transmissionNextState;
     double m_frameProcessTime;
@@ -41,6 +42,8 @@ public:
      * @brief Smart pointer to create Transmission object
      */
     static std::shared_ptr<Transmissions> create();
+
+    std::shared_ptr<Transmission::UartFrame::UartFrame> getUart();
 
     /**
      * @brief Reset the state machine
@@ -70,6 +73,8 @@ public:
      * @brief update sequence number when receive signal from server
      */
     void updateSequenceNumber(std::shared_ptr<Transmission::ServerFrame::ServerFrame> &server);
+
+    void setSafeCounter(int safeCounter);
 
     /**
      * @brief Loop the MQTT connection

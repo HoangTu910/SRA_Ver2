@@ -8,6 +8,7 @@
 #define __VERY_LONG_DELAY__ delay(2000)
 #define __WAIT_STATE_FOR_SERVER_PROCESSING_KEY__ delay(10)
 #define IDENTIFIER_ID_STM_SIZE 4
+#define FOREVER_LOOP while(1)
 
 #define MAX_FREQUENCY 240
 #define NORMAL_FREQUENCY 80

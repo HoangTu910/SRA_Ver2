@@ -59,24 +59,27 @@ typedef struct IGNORE_PADDING UartFrameSTM32
 typedef struct IGNORE_PADDING UartFrameSTM32Trigger
 {
     uint8_t str_header[SOF_SIZE];
-    uint8_t str_identifierId[IDENTIFIER_ID_SIZE];
     uint8_t str_triggerSignal;
+    uint8_t str_identifierId[IDENTIFIER_ID_SIZE];
     uint8_t str_addLength[AAD_MAX_SIZE_LEN];
     uint8_t str_add[AAD_MAX_SIZE];
     uint8_t str_eof[EOF_SIZE];
     uint8_t str_padding[98]; 
 } UartFrameSTM32Trigger;
 
+typedef struct IGNORE_PADDING UartFrameSTM32Init
+{
+    uint8_t str_header[SOF_SIZE];
+    uint8_t str_packetType;
+    uint8_t str_identifierId[IDENTIFIER_ID_SIZE];
+    uint8_t str_data[AAD_MAX_SIZE];
+    uint8_t str_eof[EOF_SIZE];
+    uint8_t str_padding[114 - SOF_SIZE - IDENTIFIER_ID_SIZE - AAD_MAX_SIZE - EOF_SIZE - 1]; 
+} UartFrameSTM32Init;
+
 class UartFrame
 {
 private:
-    /**
-     * @brief Transmit data over UART
-     * @param data Pointer to the data buffer to transmit
-     * @param size Size of the data to transmit
-     * @return true if transmission successful, false otherwise
-     */
-    bool UARTTransmitting(uint8_t* data, size_t size);
     
     std::shared_ptr<UartFrameData> m_uartFrame;
     std::shared_ptr<UartFrameSTM32> m_uartFrameSTM32;
@@ -95,6 +98,14 @@ private:
     bool m_isParsingComplete = false;
     HardwareSerial *m_uart = &Serial1;
 public:
+    /**
+     * @brief Transmit data over UART
+     * @param data Pointer to the data buffer to transmit
+     * @param size Size of the data to transmit
+     * @return true if transmission successful, false otherwise
+     */
+    bool UARTTransmitting(uint8_t* data, size_t size);
+    std::shared_ptr<UartFrameSTM32Init> m_uartFrameSTM32Init;
     const uint8_t IdentifierIDSTM[IDENTIFIER_ID_STM_SIZE] = {0x01, 0x02, 0x03, 0x04};
     /**
      * @brief Constructor of UartFrame
@@ -285,7 +296,12 @@ public:
     /**
      * @brief Construct frame for transmitting trigger signal to STM32
      */
-    void constructFrameForTransmittingTriggerSignal(std::vector<unsigned char> associatedData);
+    void constructFrameForTransmittingTriggerSignal(std::vector<unsigned char> associatedData, uint8_t command);
+
+    /**
+     * @brief Construct frame for transmitting trigger signal to STM32
+     */
+    void constructFrameForTransmittingInititalData(std::vector<unsigned char> data);
 
     /**
      * @brief Template function for transmitting data using UART

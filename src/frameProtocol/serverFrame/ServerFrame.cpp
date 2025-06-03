@@ -217,6 +217,7 @@ void Transmission::ServerFrame::ServerFrame::constructServerDataFrame(const std:
     {
         m_serverDataFrame->s_sequenceNumber++;
     }
+    PLAT_LOG_D("-- Sequence number: %d", m_serverDataFrame->s_sequenceNumber);
 
     // Copy nonce
     if(nonce.size() >= NONCE_SIZE) {
@@ -266,6 +267,7 @@ void Transmission::ServerFrame::ServerFrame::sendDataFrameToServer(std::shared_p
     // PLAT_LOG_ED("\n");
     auto startTime = std::chrono::steady_clock::now();
     mqtt->publishData(m_serverDataFrame.get(), sizeof(DataFrame::ServerFrameData));
+    PLAT_LOG_D("-- Publish data size: %d", sizeof(DataFrame::ServerFrameData));
     auto endTime = std::chrono::steady_clock::now();
     double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
     PLAT_LOG_D("-- Sent server data frame to server in %.4f ms", elapsedTime);

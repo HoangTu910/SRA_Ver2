@@ -17,6 +17,7 @@ namespace MQTTHelper
     extern char* MQTT_PUBLIC_KEY_TOPIC;
     extern char* MQTT_PUBLIC_KEY_RECEIVE_TOPIC;
     extern char* MQTT_DEVICE_ID;
+    extern char* MQTT_INIT_SESSION_TOPIC;
     extern int MQTT_TIMEOUT;
 }
 
