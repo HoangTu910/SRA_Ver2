@@ -3,14 +3,25 @@
 
 namespace WifiHelper
 {
-    char* SSID = (char*)"your_wifi_ssid";
-    char* PASSWORD = (char*)"your_wifi_password";
-    int WIFI_TIMEOUT = 5000;
+    char *SSID = (char*)"The Jade Coffee and Tea";
+    char *PASSWORD = (char*)"caphengon";
+
+    // char *SSID = (char*)"Dau Cafe Ngoai Troi";
+    // char *PASSWORD = (char*)"Mocua24h";
+
+    // char *SSID = (char*)"Hoang Tuan";
+    // char *PASSWORD = (char*)"03081973";
+
+    // char *SSID = (char*)"FETEL@DESLAB_SV";
+    // char *PASSWORD = (char*)"DeslabSV";
+
+    // char *SSID = (char*)"Redmi Note 11S";
+    // char *PASSWORD = (char*)"hoangtu2003";
 }
 
 namespace MQTTHelper
 {   
-    char* MQTT_SERVER = (char*)"192.168.1.24";
+    char* MQTT_SERVER = (char*)"192.168.1.58";
     int MQTT_PORT = 1885;
     char* MQTT_USER = (char*)"admin";
     char* MQTT_PASSWORD = (char*)"123";
@@ -18,5 +29,6 @@ namespace MQTTHelper
     char* MQTT_PUBLIC_KEY_TOPIC = (char*)"handshake/ecdh";
     char* MQTT_DEVICE_ID = (char*)"newdevice123";
     char* MQTT_PUBLIC_KEY_RECEIVE_TOPIC = (char*)"handshake-send/ecdh";
+    char* MQTT_INIT_SESSION_TOPIC = (char*)"init/session";
     int MQTT_TIMEOUT = 5000;
 }

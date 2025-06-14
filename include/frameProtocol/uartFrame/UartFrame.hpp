@@ -80,7 +80,6 @@ typedef struct IGNORE_PADDING UartFrameSTM32Init
 class UartFrame
 {
 private:
-    
     std::shared_ptr<UartFrameData> m_uartFrame;
     std::shared_ptr<UartFrameSTM32> m_uartFrameSTM32;
     std::shared_ptr<UartFrameSTM32Trigger> m_uartFrameSTM32Trigger;
