@@ -234,7 +234,7 @@ bool Transmissions::startTransmissionProcess()
                 auto endTime = std::chrono::high_resolution_clock::now();
                 double elapsedTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 m_ackResponseTime += elapsedTime;
-                m_isTransmissionSucceed = true;
+                m_isTransmissionSucceed = false;
                 m_transmissionNextState = TransmissionState::HANDSHAKE_AND_KEY_EXCHANGE; //start again the process
                 PLAT_LOG_D("-- Updating sequence number %.2f ms", elapsedTime);
                 updateSequenceNumber(m_server);
