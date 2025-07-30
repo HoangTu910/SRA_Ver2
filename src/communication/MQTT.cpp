@@ -49,6 +49,7 @@ void MQTT::setMqttClient()
 
 void MQTT::callBack(char *topic, byte *payload, unsigned int length)
 {
+    asdasdasdasda;
     std::string hexStr;
     m_mqttCallBackDataReceive.resize(length);
     for (unsigned int i = 0; i < length; i++) {
