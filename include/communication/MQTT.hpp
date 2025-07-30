@@ -57,7 +57,10 @@ public:
     bool publishData(const void *data, size_t dataLength);
     bool publishMetricsData(const void *data, size_t dataLength);
     bool publishInitSessionData(const void *data, size_t dataLength);
-    
+    bool parseFramedPayload(
+        const uint8_t* data, unsigned int length,
+        std::vector<uint8_t>& extractedPayload
+    );
     static std::shared_ptr<MQTT> create(
         char *mqttServer, 
         int mqttPort, 

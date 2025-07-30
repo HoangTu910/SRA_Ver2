@@ -47,6 +47,45 @@ void MQTT::setMqttClient()
     m_client = m_espClient;
 }
 
+bool MQTT::parseFramedPayload(
+    const uint8_t* data, unsigned int length, std::vector<uint8_t>& extractedPayload
+) {
+    PLAT_LOG_D(__FMT_STR__, "-- Parsing packet from server");
+    if (length < 8) {
+        PLAT_LOG_D("Frame too short: %u bytes", length);
+        return false;
+    }
+
+    // Extract SOF
+    uint16_t sof = (data[0] << 8) | data[1];
+    if (sof != ServerFrameConstants::SERVER_FRAME_PREAMBLE) {
+        PLAT_LOG_D("Invalid SOF: got 0x%04X, expected 0x%04X", sof, ServerFrameConstants::SERVER_FRAME_PREAMBLE);
+        return false;
+    }
+
+    // Extract EOF
+    uint16_t eof = (data[length - 2] << 8) | data[length - 1];
+    if (eof != ServerFrameConstants::SERVER_FRAME_END_MAKER) {
+        PLAT_LOG_D("Invalid EOF: got 0x%04X, expected 0x%04X", eof, ServerFrameConstants::SERVER_FRAME_END_MAKER);
+        return false;
+    }
+
+    // Extract ID
+    uint32_t id = (data[2] << 24) | (data[3] << 16) | (data[4] << 8) | data[5];
+    if (id != ServerFrameConstants::SERVER_FRAME_IDENTIFIER_ID) {
+        PLAT_LOG_D("Unexpected ID: got 0x%08X, expected 0x%08X", id, ServerFrameConstants::SERVER_FRAME_IDENTIFIER_ID);
+        return false;
+    }
+
+    // Extract Payload
+    const unsigned int payloadStart = 6;
+    const unsigned int payloadEnd = length - 2;
+    extractedPayload.assign(data + payloadStart, data + payloadEnd);
+
+    return true;
+}
+
+
 void MQTT::callBack(char *topic, byte *payload, unsigned int length)
 {
     std::string hexStr;
@@ -65,16 +104,39 @@ void MQTT::callBack(char *topic, byte *payload, unsigned int length)
         return;
     }
 
-    if(length == 1 && payload[0] == ServerFrameConstants::SERVER_FRAME_PACKET_ACK_TYPE){
-        // PLAT_LOG_D("ACK package arrived [%d]", payload[0]);
-        m_mqttIsAckPackageArrived = true;
-    }
-    else if(length == 1 && payload[0] == ServerFrameConstants::SERVER_FRAME_UPDATE_SEQUENCE_NUMBER){
-        // PLAT_LOG_D("Sequence number update [%d]", payload[0]);
-        m_mqttIsSequenceNumberNeededUpdate = true;
+    // if(length == 1 && payload[0] == ServerFrameConstants::SERVER_FRAME_PACKET_ACK_TYPE){
+    //     // PLAT_LOG_D("ACK package arrived [%d]", payload[0]);
+    //     m_mqttIsAckPackageArrived = true;
+    // }
+    // else if(length == 1 && payload[0] == ServerFrameConstants::SERVER_FRAME_UPDATE_SEQUENCE_NUMBER){
+    //     // PLAT_LOG_D("Sequence number update [%d]", payload[0]);
+    //     m_mqttIsSequenceNumberNeededUpdate = true;
+    // }
+    if(length == ServerFrameConstants::SERVER_FRAME_UNIQ) {
+        std::vector<uint8_t> extractedPayload;
+        if(parseFramedPayload(payload, length, extractedPayload)){
+            switch (extractedPayload[ServerFrameConstants::SERVER_GET_UNIQ]) {
+                case ServerFrameConstants::SERVER_FRAME_PACKET_ACK_TYPE:
+                    m_mqttIsAckPackageArrived = true;
+                    m_mqttCallBackDataReceive = extractedPayload;
+                    break;
+                case ServerFrameConstants::SERVER_FRAME_UPDATE_SEQUENCE_NUMBER:
+                    m_mqttIsSequenceNumberNeededUpdate = true;
+                    m_mqttCallBackDataReceive = extractedPayload;
+                    break;
+                default:
+                    PLAT_LOG_D("-- Unknown 1-byte control packet: 0x%02X", extractedPayload[6]);
+                    break;
+            }
+        }
     }
     else{
-        m_mqttIsMessageArrived = true;
+        std::vector<uint8_t> extractedPayload;
+        if(parseFramedPayload(payload, length, extractedPayload)){
+            m_mqttCallBackDataReceive = extractedPayload;
+            m_mqttIsMessageArrived = true;
+            PLAT_LOG_D(__FMT_STR__, "-- Parsing [public key] successfully!");
+        }
     }
 }
 
