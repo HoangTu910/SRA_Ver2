@@ -169,7 +169,7 @@ void Transmission::ServerFrame::ServerFrame::performHandshake(std::shared_ptr<MQ
 
                     PLAT_LOG_ED(__FMT_STR__, "-- Shared secret computed successfully ");
                     for(int i = 0; i < 16; i++) {
-                        PLAT_LOG_ED("%02X ", m_secretKeyComputed[i]);
+                        PLAT_LOG_ED("%d2x", m_secretKeyComputed[i]);
                     }
                     PLAT_LOG_ED("\n");
                     m_handshakeNextState = HandshakeState::HANDSHAKE_COMPLETE;
