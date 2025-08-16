@@ -1,3 +1,10 @@
+# Thesis 9.8/10
+* Project Owner: Tu Hoang
+* Project Manager: Hoang Tu
+* Developer: Huu Tu
+* Tester: Hoo Too
+* Architecture: Tu Huu
+
 # Secu-re-liable Is All You Need
 
 Secu-re-liable is the latest version of **SRA**, an AIoT-based healthcare system that I initially developed a few months ago. This version focuses on enhancing system performance, eliminating redundant features, and optimizing the data transmission process between the gateway and server. Additionally, the **DVGW** has been redesigned to extend its applicability beyond healthcare, supporting smart home systems, IoT devices, and any sensor-based networks requiring secure and efficient data transfer.
