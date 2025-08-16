@@ -2,6 +2,8 @@
 * Project Owner: Tu Hoang
 * Project Manager: Hoang Tu
 * Developer: Huu Tu
+* Developer: AWDang
+* Hardware: AWDang
 * Tester: Hoo Too
 * Architecture: Tu Huu
 
