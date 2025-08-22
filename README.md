@@ -1,4 +1,5 @@
 # Thesis 9.8/10
+## Publication: A Frame-Based Architecture for Enhanced Secure IoT Communication with Ascon-128a (IAAA 2025)
 * Project Owner: Tu Hoang
 * Project Manager: Hoang Tu
 * Developer: Huu Tu
